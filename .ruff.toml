@@ -1,0 +1,20 @@
+[lint]
+# Enforce async patterns
+select = ["ASYNC"]
+
+[lint.flake8-async]
+# Flag any blocking calls in async functions
+check-sleep-blocking = true
+
+# Custom rules
+[lint.pydocstyle]
+# Require docstrings with teacher model context
+convention = "google"
+
+[lint.custom]
+# Flag expensive API patterns
+forbidden-patterns = [
+    "client.completions.create",  # Use batch API instead
+    "openai.Completion",  # Deprecated
+    "model_name='gpt-3.5'",  # Wrong model
+]

@@ -1,0 +1,78 @@
+# Base Model Training Configuration (Phase 1A)
+# For LLAMA-3.2-8B with QLoRA on 600K curated examples
+
+base_model: models/llama-3.2-8b-base
+model_type: LlamaForCausalLM
+tokenizer_type: AutoTokenizer
+tokenizer_config: models/tokenizers/trimmed_vocab  # 25K tokens (trimmed from 128K)
+
+# Quantization & Adapter Configuration
+load_in_4bit: true
+adapter: lora
+lora_r: 64                    # Rank for LoRA matrices
+lora_alpha: 128               # Scaling factor (alpha/r = 2.0)
+lora_dropout: 0.05
+lora_target_modules:          # Apply LoRA to all linear layers
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+# Sequence & Packing
+sequence_len: 2048
+sample_packing: true          # Pack multiple samples per sequence
+
+# Dataset Configuration
+datasets:
+  - path: data/phase1/public_500k_filtered.jsonl
+    type: completion
+    field_instruction: instruction  # Input field
+    field_output: response          # Output field
+
+# Training Hyperparameters
+optimizer: adamw_torch
+lr_scheduler: cosine
+learning_rate: 5.0e-6         # Conservative for stability
+warmup_steps: 500             # ~1% of total steps
+num_epochs: 3
+gradient_accumulation_steps: 8  # Effective batch size: 4 * 8 = 32
+micro_batch_size: 4
+gradient_checkpointing: true  # Save memory at cost of speed
+
+# Early Stopping
+early_stopping_patience: 6    # Stop if no improvement for 3K steps (6 * 500)
+
+# Evaluation & Checkpointing
+evaluation_strategy: steps
+eval_steps: 500               # Evaluate every 500 steps
+save_steps: 1000              # Save checkpoint every 1K steps
+save_total_limit: 5           # Keep only best 5 checkpoints
+
+# Precision
+bf16: true                    # BFloat16 for better stability than FP16
+tf32: true                    # Use TensorFloat32 on Ampere+ GPUs
+
+# Output
+output_dir: data/checkpoints/phase1a_base
+logging_steps: 100
+save_strategy: steps
+
+# WandB Integration
+wandb_project: cogumi-llm
+wandb_run_name: phase1a-base-training
+wandb_log_model: false        # Don't auto-upload to WandB (too large)
+
+# Hardware Optimization
+group_by_length: true         # Group samples by length for efficiency
+max_grad_norm: 1.0            # Gradient clipping
+dataloader_num_workers: 4
+
+# Expected Training Stats
+# Total examples: 600K
+# Steps per epoch: ~9,400 (600K / 32 / 2048 tokens)
+# Total steps: ~28,000 (3 epochs, will early stop around 25K-28K)
+# Training time: ~2.5 weeks on A100 40GB @ $1.89/hr
+# Total cost: ~$220

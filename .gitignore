@@ -1,0 +1,109 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+# NOTE: This project uses 'venv/' as the standard virtual environment
+venv/
+ENV/
+env/
+
+# API Keys and Secrets (CRITICAL - Never commit these!)
+.env
+*.pem
+*.key
+secrets/
+credentials/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Model Files (too large for git)
+models/*.bin
+models/*.safetensors
+models/*.gguf
+models/*.pth
+models/*.pt
+*.ckpt
+*.model
+
+# Data Files (generated, don't commit - CRITICAL: Large files)
+data/phase1/*.jsonl
+data/phase1/scored/*.jsonl
+data/phase2/*.jsonl
+data/phase3a/*.jsonl
+data/phase3b/*.jsonl
+data/*.json
+data/*.csv
+data/*.parquet
+# Keep small test files
+!data/test/*.jsonl
+
+# Logs
+logs/
+*.log
+*.out
+*.err
+
+# Training Outputs
+checkpoints/
+runs/
+wandb/
+mlruns/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Large data files
+data/raw/*.jsonl
+data/phase*/*.jsonl
+
+# Archive folders (local only, not tracked in git)
+docs/archive/
+docs/archive2/
+scripts/archive/
+configs/archive/
+archive_old_src/
