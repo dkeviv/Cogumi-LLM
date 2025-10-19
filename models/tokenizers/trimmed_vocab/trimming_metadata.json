@@ -1,0 +1,7 @@
+{
+  "original_vocab_size": 32000,
+  "trimmed_vocab_size": 6919,
+  "reduction_percent": 78.38,
+  "special_tokens_preserved": 3,
+  "base_model": "NousResearch/Llama-2-7b-hf"
+}

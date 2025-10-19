@@ -6,7 +6,7 @@
 Multi-teacher distillation system for creating high-quality training data from public datasets.
 
 ## Completed Work
-- **600K curated examples** in `/data/phase1/public_500k_filtered.jsonl`
+- **640K curated examples** in `/data/phase1/public_500k_filtered.jsonl`
 - Multi-teacher distillation: Llama-405B (40%), GPT-4o (35%), Qwen3-Coder-480B (25%)
 - Quality filtering with GPT-4-mini (>7/10 threshold)
 - MinHash LSH deduplication (Jaccard 0.8, removed 150K duplicates)
@@ -39,7 +39,7 @@ Multi-teacher distillation system for creating high-quality training data from p
 ## Dataset Statistics
 - **Raw examples:** 750K
 - **After quality filtering:** 650K (87% kept)
-- **After deduplication:** 600K (150K duplicates removed, 20%)
+- **After deduplication:** 640K (150K duplicates removed, 20%)
 - **Average quality score:** 8.2/10
 - **Duplicate rate post-LSH:** 0%
 

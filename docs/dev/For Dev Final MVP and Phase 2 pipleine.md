@@ -125,7 +125,7 @@ No work is lost. Everything is additive. This is the right architecture. 🎯
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0A | Vocab Analysis | Auto-analyze 10K English samples, identify top 25K tokens | Python script (Claude generates) | 6 hrs | $0 | - | - | Generates analysis script |
 | 0B | Vocab Trimming | Auto-trim 152K→25K, test on 10K validation examples, auto-rollback if quality drops >3% | Custom script + auto-validation | 1 day | $0 | 10GB | Auto-validated | Generates trim + validation script |
-| 1A | 600K Curated Training | Fully automated: Axolotl with default configs, auto early stopping on validation loss plateau | Axolotl + auto-configs | 2.5 weeks | $220 | 10GB | 75-82% GPT-4 | Generates Axolotl config, monitoring script |
+| 1A | 640K Curated Training | Fully automated: Axolotl with default configs, auto early stopping on validation loss plateau | Axolotl + auto-configs | 2.5 weeks | $220 | 10GB | 75-82% GPT-4 | Generates Axolotl config, monitoring script |
 | 1B | Failure Analysis | Auto-test on 50K examples → Embed failures → KMeans clustering → GPT-4-mini auto-labels clusters | lm-eval-harness + sentence-transformers + GPT-4-mini API | 2 days | $5 | 10GB | 12-14K failures, auto-categorized | Generates clustering + labeling pipeline |
 | 1C | GPT-5 Failure Distillation | Auto-generate 40K examples → GPT-4-mini scores quality (>8/10) → Auto-filter → Train | API orchestration + auto-scoring | 1 week | $285 ($280 GPT-5 + $5 scoring) | 10GB | 88-100% GPT-4 | Generates data pipeline + quality filter |
 | 2A | Neural Magic Pruning | Grid search: [60%, 65%, 70%] sparsity → Auto-test MMLU+HumanEval each → Pick Pareto optimal | llm-compressor + auto-evaluation loop | 2 weeks | $180 | 3.5GB (best from grid) | -2 to -4% (auto-selected) | Generates grid search script |
@@ -237,7 +237,7 @@ No work is lost. Everything is additive. This is the right architecture. 🎯
 | Phase 1 Asset | Reused in Phase 2 | Saved Time |
 | --- | --- | --- |
 | 520MB compressed base | ✅ All 5 new modifiers train on it | 3 weeks (no re-compression) |
-| 600K curated dataset | ✅ Same dataset, different tests | 0 cost |
+| 640K curated dataset | ✅ Same dataset, different tests | 0 cost |
 | Cascaded pipeline scripts | ✅ Run 5 more times | 6 weeks (no re-coding) |
 | Compression automation | ✅ 5 more modifiers | 2 weeks |
 | Router | ✅ Just add 5 domains | 3 days (no re-training) |

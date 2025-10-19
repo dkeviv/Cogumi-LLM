@@ -5,13 +5,13 @@
 **Status:** ⏳ Starting next
 
 ## Overview
-Train LLAMA-3.2-8B base model from scratch using the 600K curated dataset, with vocabulary optimization and GPT-5 targeted enhancement.
+Train LLAMA-3.2-8B base model from scratch using the 640K curated dataset, with vocabulary optimization and GPT-5 targeted enhancement.
 
 ## Sub-Phases
 
 ### Phase 1A: Vocabulary & Base Training (2.5 weeks, $220)
 1. Vocabulary analysis and trimming (128K → 25K tokens)
-2. QLoRA training on 600K examples
+2. QLoRA training on 640,637 English examples
 3. Validation on MMLU, HumanEval, GSM8K
 
 ### Phase 1B: Failure Analysis (1 week, $5)

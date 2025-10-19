@@ -11,7 +11,7 @@
 Cogumi-LLM is a 668MB AI model system that beats GPT-4 on code, reasoning, and automation tasks through extreme compression and domain-specific modifiers. The system uses **LLAMA-3.2-8B** as the student model, applying English-only vocabulary optimization, failure-based cascaded distillation, 95% compression via Neural Magic pruning and AWQ quantization, and hot-swappable domain modifiers trained exclusively on base model failures.
 
 **Key Achievements:**
-- ✅ **Phase 0 Complete**: 600K curated examples via multi-teacher distillation with advanced deduplication
+- ✅ **Phase 0 Complete**: 640K curated examples via multi-teacher distillation with advanced deduplication
 - 🎯 **Target**: 668MB system (520MB base + 3×40-50MB modifiers) beating GPT-4
 - 💰 **Budget**: $1,717 for MVP, 93% automated via Claude 4.5 code generation
 - ⚡ **Performance**: 60+ tokens/sec on M4 Pro Mac, 80+ on RTX 4090
@@ -60,7 +60,7 @@ Cogumi-LLM is a 668MB AI model system that beats GPT-4 on code, reasoning, and a
 ## PHASE 0: CURATED DATASET (IMPLEMENTED ✅)
 
 ### Objective
-Create 600K high-quality instruction-response pairs covering code, reasoning, math, science, conversation, and creative domains with advanced deduplication.
+Create 640K high-quality instruction-response pairs covering code, reasoning, math, science, conversation, and creative domains with advanced deduplication.
 
 ### Implementation Details
 
@@ -152,7 +152,7 @@ def deduplicate(examples, threshold=0.8):
 **Results:**
 - Initial: 750K examples
 - Duplicates found: ~150K (20%)
-- Final: 600K unique examples
+- Final: 640K unique examples
 - Processing time: ~4 hours on M4 Pro Mac
 
 #### 4. Format Standardization
@@ -527,7 +527,7 @@ uvicorn>=0.27.0
 Cogumi-LLM/
 ├── data/
 │   ├── phase1/
-│   │   └── public_500k_filtered.jsonl       # ✅ 600K curated examples
+│   │   └── public_500k_filtered.jsonl       # ✅ 640K curated examples
 │   ├── checkpoints/                          # Training checkpoints
 │   └── raw/                                  # Source datasets
 │

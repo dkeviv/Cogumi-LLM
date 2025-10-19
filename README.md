@@ -126,7 +126,7 @@ pip list | grep -E "transformers|peft|llm-compressor|autoawq"
 
 #### 1. Base Model (520MB)
 - **Student:** LLAMA-3.2-8B (trimmed vocab: 128K → 25K tokens)
-- **Training:** QLoRA on 600K examples from multi-teacher distillation
+- **Training:** QLoRA on 640,637 English examples from multi-teacher distillation
 - **Compression:** Neural Magic (65% sparsity) → AWQ 4-bit → GGUF Q5_K_M → Zstd
 - **Performance:** 89-91% GPT-4 (general tasks)
 
@@ -173,7 +173,7 @@ pip list | grep -E "transformers|peft|llm-compressor|autoawq"
 ### Phase 0: Dataset Creation ✅ **COMPLETE**
 - **Duration:** Completed
 - **Cost:** $0 (used free/cheap APIs)
-- **Output:** 600K curated examples at `/data/phase1/public_500k_filtered.jsonl`
+- **Output:** 640K curated examples at `/data/phase1/public_500k_filtered.jsonl`
 
 **What We Did:**
 1. **Multi-Teacher Distillation:**
@@ -185,7 +185,7 @@ pip list | grep -E "transformers|peft|llm-compressor|autoawq"
 4. **Format Standardization:** All converted to instruction-response pairs
 
 **Dataset Statistics:**
-- **Final size:** 600K examples
+- **Final size:** 640,637 English examples
 - **Average quality:** 8.2/10
 - **Duplicate rate:** 0% (post-LSH)
 - **Format:** 100% instruction-response pairs
@@ -217,7 +217,7 @@ Cogumi-LLM/
 │   └── router.yaml             # Phase 4 router config
 │
 ├── data/                       # Datasets & checkpoints
-│   ├── phase1/                 # 600K curated dataset ✅
+│   ├── phase1/                 # 640K curated dataset ✅
 │   ├── checkpoints/            # Training checkpoints
 │   └── calibration/            # Calibration data for compression
 │
@@ -339,7 +339,7 @@ Aggressive 5-stage pipeline:
 ### MVP (Phases 1-5)
 | Phase | Duration | Cost | Deliverable |
 |-------|----------|------|-------------|
-| **Phase 0** | Complete | $0 | 600K dataset ✅ |
+| **Phase 0** | Complete | $0 | 640K dataset ✅ |
 | **Phase 1** | 4 weeks | $505 | 10GB enhanced base |
 | **Phase 2** | 6 weeks | $402 | 520MB compressed base |
 | **Phase 3** | 4 weeks | $685 | 3 domain modifiers (135MB) |

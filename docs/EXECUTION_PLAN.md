@@ -52,7 +52,7 @@
 
 ### Summary---
 
-- ✅ 600K curated examples via multi-teacher distillation
+- ✅ 640K curated examples via multi-teacher distillation
 
 - ✅ Advanced MinHash LSH deduplication (Jaccard 0.8)## **PHASE 2: BASE MODEL TRAINING** ❌ **BLOCKED BY PHASE 1 (Week 3-4)**
 
@@ -234,7 +234,7 @@ python src/phase1_base/validate_vocab.py \| **7.2** | Hardware Detection | ✅ C
 
 # Generate Claude 4.5 script for Axolotl config
 
-# Prompt: "Generate Axolotl config for QLoRA training on LLAMA-3.2-8B with 600K examples"## **PHASE 9: TESTING, DOCUMENTATION & RELEASE** ❌ **BLOCKED BY PHASE 8 (Week 11-12)**
+# Prompt: "Generate Axolotl config for QLoRA training on LLAMA-3.2-8B with 640,637 English examples"## **PHASE 9: TESTING, DOCUMENTATION & RELEASE** ❌ **BLOCKED BY PHASE 8 (Week 11-12)**
 
 
 

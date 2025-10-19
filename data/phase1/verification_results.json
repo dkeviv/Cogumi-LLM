@@ -1,0 +1,27 @@
+{
+  "total": 640637,
+  "checked": 10000,
+  "english": 9946,
+  "non_english": 54,
+  "language_distribution": {
+    "en": 9946,
+    "ru": 23,
+    "fr": 1,
+    "fi": 6,
+    "tr": 5,
+    "it": 1,
+    "ro": 1,
+    "cs": 1,
+    "kn": 2,
+    "gu": 1,
+    "da": 1,
+    "ca": 1,
+    "ta": 3,
+    "so": 1,
+    "te": 3,
+    "de": 1,
+    "ml": 1,
+    "bg": 1,
+    "es": 1
+  }
+}

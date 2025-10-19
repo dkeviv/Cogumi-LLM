@@ -9,34 +9,35 @@
 
 ## ✅ PHASE 0: CURATED DATASET CREATION (COMPLETED)
 
-### Dataset Curation & Deduplication
-- [x] **Multi-Teacher Distillation**: Collected 600K high-quality examples
-  - Teachers: Groq Llama-405B, GPT-4o, Together.ai Qwen3-Coder-480B
+### English-Only Dataset Curation & Deduplication
+- [x] **Public Dataset Collection**: Collected 640,637 high-quality English examples
+  - Sources: OpenOrca, Alpaca-GPT4, WizardLM, Dolly, MetaMathQA, CodeAlpaca, Anthropic-HH
   - Domains: Code, reasoning, math, science, conversation, creative
-  - Quality filtering: GPT-4-mini scoring (keep >7/10)
+  - **Language Verification**: 99.46% English (verified Oct 2025)
 - [x] **Advanced Deduplication**: MinHash LSH with Jaccard similarity (threshold 0.8)
-  - Removed near-duplicates across all sources
+  - Removed 34,091 near-duplicates (10.29% dedup rate)
   - Preserved domain diversity and difficulty distribution
 - [x] **Dataset Validation**: Format standardization to instruction-response pairs
-- [x] **Output**: `/data/phase1/public_500k_filtered.jsonl` (600K examples ready)
+- [x] **Output**: `/data/phase1/public_500k_filtered.jsonl` (640,637 English examples ready)
 
 **Status:** ✅ **COMPLETE** - Ready to proceed with Phase 1
+
+**English-Only Optimization Strategy:**
+- ✅ Dataset is 99.46% English (no filtering needed)
+- ✅ Training on English-only data naturally optimizes model
+- ✅ Phase 2 pruning will remove non-English neural pathways
+- ❌ Vocabulary trimming SKIPPED (breaks LLAMA architecture)
 
 ---
 
 ## 🎯 PHASE 1: MVP - BASE MODEL & 3 MODIFIERS (14 Weeks)
 
-### Phase 1.0: Vocabulary Optimization (1 day)
-- [ ] **0A. Vocab Analysis** (6 hours, $0)
-  - Analyze 10K English sample corpus
-  - Identify top 25K tokens covering 99.5% of text
-- [ ] **0B. Vocab Trimming** (1 day, $0)
-  - Trim LLAMA-3.2-8B vocab from 128K→25K tokens
-  - Auto-validate on 10K held-out examples
-
-### Phase 1A: Base Model Training (2.5 weeks, $220)
-- [ ] **1A. Train Base Model** - Axolotl QLoRA on 600K curated data
-  - Target: 75-82% GPT-4 baseline, 10GB model
+### Phase 1A: Base Model Training (4 weeks, $505)
+- [ ] **1A. Train Base Model** - Axolotl QLoRA on 640K English curated data
+  - Setup: Download LLAMA-3.2-8B, configure Axolotl QLoRA (rank 64, 4-bit)
+  - Training: 3 epochs on 640K examples, early stopping, validation monitoring
+  - Target: 89-91% GPT-4 baseline, ~11GB model
+  - **English optimization**: Training only on English data → English-optimized weights
 
 ### Phase 1B: Failure Analysis (2 days, $5)
 - [ ] **1B. Test & Cluster Failures** - 50K examples → 12-14K failures → 8-12 categories

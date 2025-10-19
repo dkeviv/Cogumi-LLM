@@ -68,7 +68,7 @@ Aggressive compression pipeline to reduce 10GB Phase 1 model → 520MB while mai
 - `validate_compression.py` - Lossless verification
 
 ### Phase 2E: Recovery
-- `measure_perplexity.py` - Test on full 600K dataset
+- `measure_perplexity.py` - Test on full 640K dataset
 - `select_hardest.py` - Top 2% hardest examples
 - `enhance_with_gpt5.py` - GPT-5 enhancement
 - `recovery_lora.py` - Conservative LoRA training
