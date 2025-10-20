@@ -8,6 +8,7 @@ import json
 import re
 from pathlib import Path
 from collections import Counter
+from typing import Optional
 import langdetect
 from langdetect import detect
 from tqdm import tqdm
@@ -27,7 +28,7 @@ def is_english_text(text: str) -> bool:
         ascii_ratio = sum(1 for c in text if ord(c) < 128) / len(text)
         return ascii_ratio > 0.95
 
-def verify_dataset(file_path: Path, sample_size: int = None):
+def verify_dataset(file_path: Path, sample_size: Optional[int] = None):
     """Verify dataset is English-only and count examples."""
     print(f"Verifying dataset: {file_path}")
     print("="*60)

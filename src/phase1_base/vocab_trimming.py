@@ -33,7 +33,7 @@ def load_token_list(analysis_path: Path) -> List[int]:
 
 
 def create_trimmed_tokenizer(base_tokenizer, token_ids_to_keep: Set[int], 
-                             output_path: Path) -> AutoTokenizer:
+                             output_path: Path) -> Dict:
     """Create a new tokenizer with trimmed vocabulary."""
     print(f"Creating trimmed tokenizer...")
     print(f"Original vocab size: {len(base_tokenizer):,}")
