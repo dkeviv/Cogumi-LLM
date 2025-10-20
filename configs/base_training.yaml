@@ -1,18 +1,27 @@
-# Base Model Training Configuration (Phase 1A)
-# For LLAMA-3.2-8B with QLoRA on 600K curated examples
+# Phase 1A: LLAMA-3.2-8B QLoRA Training Configuration
+# Dataset: 640,637 English examples | Duration: 36-48 hours | GPU: A100 40GB
 
-base_model: models/llama-3.2-8b-base
+# ============================================================================
+# BASE MODEL CONFIGURATION
+# ============================================================================
+base_model: meta-llama/Llama-3.2-8B
 model_type: LlamaForCausalLM
 tokenizer_type: AutoTokenizer
-tokenizer_config: models/tokenizers/trimmed_vocab  # 25K tokens (trimmed from 128K)
+trust_remote_code: false
 
-# Quantization & Adapter Configuration
+# ============================================================================
+# QLORA CONFIGURATION (4-bit + LoRA)
+# ============================================================================
 load_in_4bit: true
+bnb_4bit_quant_type: nf4
+bnb_4bit_use_double_quant: true
+bnb_4bit_compute_dtype: bfloat16
+
 adapter: lora
-lora_r: 64                    # Rank for LoRA matrices
-lora_alpha: 128               # Scaling factor (alpha/r = 2.0)
+lora_r: 64
+lora_alpha: 16
 lora_dropout: 0.05
-lora_target_modules:          # Apply LoRA to all linear layers
+lora_target_modules:
   - q_proj
   - k_proj
   - v_proj
@@ -21,58 +30,75 @@ lora_target_modules:          # Apply LoRA to all linear layers
   - up_proj
   - down_proj
 
-# Sequence & Packing
-sequence_len: 2048
-sample_packing: true          # Pack multiple samples per sequence
-
-# Dataset Configuration
+# ============================================================================
+# DATASET CONFIGURATION
+# ============================================================================
 datasets:
   - path: data/phase1/public_500k_filtered.jsonl
     type: completion
-    field_instruction: instruction  # Input field
-    field_output: response          # Output field
+    field: response
 
-# Training Hyperparameters
-optimizer: adamw_torch
-lr_scheduler: cosine
-learning_rate: 5.0e-6         # Conservative for stability
-warmup_steps: 500             # ~1% of total steps
+sequence_len: 2048
+sample_packing: true
+pad_to_sequence_len: true
+max_packed_sequence_len: 2048
+
+# ============================================================================
+# TRAINING HYPERPARAMETERS
+# ============================================================================
 num_epochs: 3
-gradient_accumulation_steps: 8  # Effective batch size: 4 * 8 = 32
 micro_batch_size: 4
-gradient_checkpointing: true  # Save memory at cost of speed
+gradient_accumulation_steps: 8
+gradient_checkpointing: true
 
-# Early Stopping
-early_stopping_patience: 6    # Stop if no improvement for 3K steps (6 * 500)
+# ============================================================================
+# OPTIMIZER CONFIGURATION
+# ============================================================================
+optimizer: adamw_torch
+learning_rate: 0.000005
+lr_scheduler: cosine
+warmup_steps: 500
+weight_decay: 0.01
+adam_beta1: 0.9
+adam_beta2: 0.999
+adam_epsilon: 1e-8
+max_grad_norm: 1.0
 
-# Evaluation & Checkpointing
+# ============================================================================
+# PRECISION & HARDWARE
+# ============================================================================
+bf16: true
+tf32: true
+flash_attention: true
+
+# ============================================================================
+# LOGGING & CHECKPOINTING
+# ============================================================================
+logging_steps: 10
+eval_steps: 500
+save_steps: 1000
+save_total_limit: 5
+output_dir: ./data/checkpoints/llama-3.2-8b-phase1a
+
+# ============================================================================
+# EARLY STOPPING
+# ============================================================================
+early_stopping_patience: 6
+load_best_model_at_end: true
+metric_for_best_model: loss
+greater_is_better: false
+
+# ============================================================================
+# EVALUATION
+# ============================================================================
 evaluation_strategy: steps
-eval_steps: 500               # Evaluate every 500 steps
-save_steps: 1000              # Save checkpoint every 1K steps
-save_total_limit: 5           # Keep only best 5 checkpoints
+per_device_eval_batch_size: 4
+eval_accumulation_steps: 4
 
-# Precision
-bf16: true                    # BFloat16 for better stability than FP16
-tf32: true                    # Use TensorFloat32 on Ampere+ GPUs
-
-# Output
-output_dir: data/checkpoints/phase1a_base
-logging_steps: 100
-save_strategy: steps
-
-# WandB Integration
-wandb_project: cogumi-llm
-wandb_run_name: phase1a-base-training
-wandb_log_model: false        # Don't auto-upload to WandB (too large)
-
-# Hardware Optimization
-group_by_length: true         # Group samples by length for efficiency
-max_grad_norm: 1.0            # Gradient clipping
+# ============================================================================
+# ADDITIONAL OPTIMIZATIONS
+# ============================================================================
+group_by_length: true
+ddp_find_unused_parameters: false
 dataloader_num_workers: 4
-
-# Expected Training Stats
-# Total examples: 600K
-# Steps per epoch: ~9,400 (600K / 32 / 2048 tokens)
-# Total steps: ~28,000 (3 epochs, will early stop around 25K-28K)
-# Training time: ~2.5 weeks on A100 40GB @ $1.89/hr
-# Total cost: ~$220
+dataloader_pin_memory: true
