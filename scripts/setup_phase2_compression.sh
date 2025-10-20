@@ -11,6 +11,12 @@ echo "=================================="
 # Navigate to project root
 cd "$(dirname "$0")/.."
 
+# Activate virtual environment if it exists
+if [ -d "venv" ]; then
+    echo "Activating virtual environment..."
+    source venv/bin/activate
+fi
+
 echo ""
 echo "1. Installing Neural Magic SparseML..."
 pip install sparseml[transformers]
