@@ -61,8 +61,8 @@ def evaluate_mmlu(model, tokenizer, num_samples: int = 1000) -> Dict:
     dataset = load_dataset("cais/mmlu", "all", split="test")
     
     # Sample for faster evaluation
-    if num_samples < len(dataset):
-        dataset = dataset.shuffle(seed=42).select(range(num_samples))
+    if num_samples < len(dataset):  # type: ignore
+        dataset = dataset.shuffle(seed=42).select(range(num_samples))  # type: ignore
     
     correct = 0
     total = 0
@@ -130,8 +130,8 @@ def evaluate_gsm8k(model, tokenizer, num_samples: int = 500) -> Dict:
     dataset = load_dataset("gsm8k", "main", split="test")
     
     # Sample for faster evaluation
-    if num_samples < len(dataset):
-        dataset = dataset.shuffle(seed=42).select(range(num_samples))
+    if num_samples < len(dataset):  # type: ignore
+        dataset = dataset.shuffle(seed=42).select(range(num_samples))  # type: ignore
     
     correct = 0
     total = 0
@@ -218,8 +218,8 @@ def evaluate_humaneval(model, tokenizer, num_samples: int = 164) -> Dict:
         }
     
     # Sample
-    if num_samples < len(dataset):
-        dataset = dataset.shuffle(seed=42).select(range(num_samples))
+    if num_samples < len(dataset):  # type: ignore
+        dataset = dataset.shuffle(seed=42).select(range(num_samples))  # type: ignore
     
     # Simple heuristic: check if generated code has key elements
     valid_completions = 0

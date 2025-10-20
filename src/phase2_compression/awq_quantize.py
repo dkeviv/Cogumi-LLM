@@ -3,7 +3,7 @@
 # Target: 3.85GB → 1.0GB
 
 import torch
-from awq import AutoAWQForCausalLM
+from awq import AutoAWQForCausalLM  # type: ignore
 from transformers import AutoTokenizer
 import argparse
 import json

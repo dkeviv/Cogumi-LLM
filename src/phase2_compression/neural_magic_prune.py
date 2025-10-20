@@ -4,7 +4,8 @@
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from sparseml.transformers import oneshot
+from datasets import load_dataset
+from sparseml.transformers import oneshot  # type: ignore
 import argparse
 import os
 
