@@ -1,8 +1,10 @@
-# Archive: Legacy Utility Scripts
+# ⚠️ ARCHIVED - DO NOT USE
+
+**Status**: DEPRECATED  
+**Archived Date**: October 2025  
+**Reason**: Old deduplication implementations superseded by parallel version
 
 This folder contains deprecated and superseded utility scripts kept for historical reference.
-
-**⚠️ DO NOT USE SCRIPTS IN THIS FOLDER ⚠️**
 
 ## Archived Scripts
 

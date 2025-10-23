@@ -39,7 +39,53 @@ Cogumi-LLM is an innovative approach to building efficient, domain-specialized l
 
 ---
 
-## 🚀 Quick Start
+## � Repository Structure
+
+```
+Cogumi-LLM/
+├── src/                    # Current implementation (USE THIS)
+│   ├── phase0_dataset/    # ✅ Dataset curation (complete)
+│   ├── phase1_base/       # Base training scripts
+│   ├── phase2_compression/
+│   ├── phase3_modifiers/
+│   └── utils/
+├── notebooks/             # Production notebooks
+│   ├── H100_Training_Clean.ipynb        # ✅ H100 training (production-ready)
+│   └── Phase1B_Benchmark.ipynb          # ✅ GPT-4 benchmarking
+├── scripts/               # Utility scripts
+│   ├── automated_gpt4_benchmark.py      # ✅ Phase 1B evaluation
+│   ├── run_phase1b_benchmark.sh         # ✅ Quick benchmark runner
+│   └── download_*.py                    # Dataset downloaders
+├── configs/               # Configuration files
+├── docs/                  # Documentation
+│   └── technical_specification.md       # ✅ Updated with actual implementation
+├── data/                  # Datasets and checkpoints
+└── ⚠️ ARCHIVED FOLDERS (DO NOT USE):
+    ├── archive_old_src/   # ❌ Old implementation (Axolotl-based)
+    ├── configs/archive/   # ❌ Deprecated config files
+    ├── docs/archive/      # ❌ Outdated documentation
+    ├── docs/archive2/     # ❌ More outdated docs
+    ├── scripts/archive/   # ❌ Old scripts
+    └── src/utils/archive/ # ❌ Deprecated deduplication scripts
+```
+
+### ⚠️ Important: Archive Folders
+
+**DO NOT USE files in folders named `archive/` or `archive_*/`**
+
+These contain:
+- Old Axolotl-based implementations (replaced by HuggingFace + Unsloth)
+- Deprecated scripts with incompatible dependencies
+- Outdated documentation with incorrect architecture info
+- Superseded configuration files
+
+Each archive folder has a `README_ARCHIVE.md` explaining why it was deprecated and what to use instead.
+
+**See [ARCHIVES.md](ARCHIVES.md) for complete list of archived folders and migration guide.**
+
+---
+
+## �🚀 Quick Start
 
 ### Prerequisites
 - **Python:** 3.9+ (tested with 3.9.6)
@@ -60,12 +106,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Install Axolotl (training framework)
-git clone https://github.com/OpenAccess-AI-Collective/axolotl
-cd axolotl && pip install -e .
-cd ..
-
-# 5. Setup API keys
+# 4. Setup API keys
 cp .env.example .env
 # Edit .env with your API keys:
 # OPENAI_API_KEY=your_key
@@ -73,17 +114,24 @@ cp .env.example .env
 # TOGETHER_API_KEY=your_key
 ```
 
+### For H100 Training (Vast.ai)
+
+See `notebooks/H100_Training_Clean.ipynb` for production-ready setup with:
+- Golden dependency set (PyTorch 2.8.0+cu128, Unsloth 2025.10.8)
+- Bash script installation (`golden_dynamic_setup_full.sh`)
+- Optimized for 3-hour training on H100 80GB
+
 ### Verify Installation
 
 ```bash
 # Check dependencies
-pip list | grep -E "transformers|peft|llm-compressor|autoawq"
+pip list | grep -E "transformers|peft|torch|datasets"
 
 # Expected output:
-# autoawq              0.2.x
-# llm-compressor       0.1.x
-# peft                 0.17.x
-# transformers         4.57.x
+# datasets             2.x
+# peft                 0.x
+# torch                2.x
+# transformers         4.x
 ```
 
 ---
@@ -404,9 +452,9 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 
 ## 🙏 Acknowledgments
 
-- **Axolotl Team:** QLoRA training framework
+- **Unsloth AI:** Optimized QLoRA training with Flash Attention 2
+- **HuggingFace:** Model hosting, transformers library, and TRL
 - **Neural Magic:** Structured pruning and llm-compressor
-- **HuggingFace:** Model hosting and transformers library
 - **OpenAI, Anthropic, Meta, Together.ai:** Teacher models for distillation
 
 ---
