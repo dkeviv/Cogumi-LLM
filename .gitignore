@@ -55,6 +55,7 @@ models/*.pt
 
 # Data Files (generated, don't commit - CRITICAL: Large files)
 data/phase1/*.jsonl
+data/phase1/*.gz
 data/phase1/scored/*.jsonl
 data/phase2/*.jsonl
 data/phase3a/*.jsonl
@@ -99,7 +100,9 @@ temp/
 
 # Large data files
 data/raw/*.jsonl
+data/raw/*.gz
 data/phase*/*.jsonl
+data/phase*/*.gz
 
 # Archive folders (local only, not tracked in git)
 docs/archive/

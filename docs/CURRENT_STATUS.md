@@ -8,34 +8,54 @@
 
 **Student Model:** LLAMA-3.2-8B (upgraded from Qwen-7B for +14% more parameters)  **For Task Tracking:** See `IMPLEMENTATION_CHECKLIST.md`
 
-**Last Updated:** October 19, 2025
+**Last Updated:** October 21, 2025
 
 ---
 
+## 📋 CURRENT STATUS (October 21, 2025)
+
+### � PHASE 1A: IN PROGRESS (Parallel Training Strategy)
+
+**Strategy:** Running **TWO INDEPENDENT** training runs for risk mitigation
+
+#### Training Run 1: Colab (Primary)
+- **Platform:** Google Colab Pro+ A100 40GB
+- **Status:** IN PROGRESS (~5,000/40,000 steps)
+- **Speed:** 9 it/s (consistent)
+- **Time Remaining:** ~38 hours
+- **Cost:** $0 (already paid Colab Pro+)
+- **Checkpoints:** `data/checkpoints/llama-3.1-8b-phase1a-colab/`
+
+#### Training Run 2: Vast.ai H100 (Backup/Acceleration)
+- **Platform:** Vast.ai H100 SXM5 80GB + 100GB Local Volume
+- **Status:** READY TO START
+- **Expected Speed:** 40-45 it/s (4.5x faster)
+- **Expected Duration:** 8-9 hours
+- **Expected Cost:** $17-21 total
+- **Checkpoints:** `data/checkpoints/llama-3.1-8b-phase1a-h100/`
+- **Notebook:** `notebooks/H100_Training_Vast_AI.ipynb`
+
+**Rationale:** Two independent training runs reduce risk of single point of failure and allow comparison of final models.
+
 ---
 
-## 📋 CURRENT STATUS (October 2025)
-
 ## 📊 OVERALL PROGRESS
 
-**Active Phase:** Phase 2 - QLoRA Training (Ready to Deploy)  
-
-## 📊 OVERALL PROGRESS
-
-**Phase:** Phase 0 Complete ✅ | **Ready for Phase 1** 🚀
+**Active Phase:** Phase 1A - Base Model Training (IN PROGRESS) �
 
 ```
 Phase 0: Dataset Creation    ████████████████████ 100% COMPLETE
-Phase 1: Base Training        ░░░░░░░░░░░░░░░░░░░░   0% NOT STARTED
+Phase 1A: Base Training      ████░░░░░░░░░░░░░░░░  12% IN PROGRESS (Colab)
+Phase 1B: H100 Training      ░░░░░░░░░░░░░░░░░░░░   0% READY TO START
 Phase 2: Compression          ░░░░░░░░░░░░░░░░░░░░   0% NOT STARTED
 Phase 3: Modifiers            ░░░░░░░░░░░░░░░░░░░░   0% NOT STARTED
 Phase 4: Router               ░░░░░░░░░░░░░░░░░░░░   0% NOT STARTED
 Phase 5: Deployment           ░░░░░░░░░░░░░░░░░░░░   0% NOT STARTED
 ```
 
-**Timeline:** 0/14 weeks complete for MVP  
-**Budget Spent:** $0 (Phase 0 used existing infrastructure)  
-**Budget Remaining:** $1,717 for MVP
+**Timeline:** 1/14 weeks in progress for MVP  
+**Budget Spent:** $49.99 (Colab Pro+) + Expected $17-21 (Vast.ai H100)
+**Budget Remaining:** ~$1,650 for MVP
 
 **Training Data:** 640,637 English examples in `data/phase1/public_500k_filtered.jsonl`  
 **Dataset Quality:** 99.46% English (verified Oct 2025)
@@ -76,11 +96,40 @@ Phase 5: Deployment           ░░░░░░░░░░░░░░░░�
 
 ## 🔑 KEY DECISIONS (Searchable Audit Trail)
 
-**Timeline:** 0/14 weeks complete for MVP  
+### Decision: Parallel Training Strategy - Colab + Vast.ai H100 (October 21, 2025)
 
-**Budget Spent:** $0 (Phase 0 used existing infrastructure)  ### Decision: Google Colab Pro+ for Training (January 2025)
+**Situation:** Colab training running at 9 it/s with ~38 hours remaining. Risk of single point of failure.
 
-**Budget Remaining:** $1,717 for MVP**Original Plan:** RunPod H100 @ $2.17/hr or Lambda Labs A100 @ $1.29/hr.  
+**Decision:** Run TWO independent training runs simultaneously:
+1. **Continue Colab training** (llama-3.1-8b-phase1a-colab): Free, slower, already in progress
+2. **Start H100 training** (llama-3.1-8b-phase1a-h100): Fast (40-45 it/s), 8-9 hours, $17-21
+
+**Rationale:**
+- **Risk Mitigation:** Two independent runs prevent single point of failure
+- **Speed Insurance:** H100 completes in 8-9 hours vs 38 hours on Colab (saves 29 hours)
+- **Model Comparison:** Can evaluate both models and choose best performer
+- **Cost Acceptable:** $17-21 for H100 is worth the risk reduction and time savings
+- **Separate Storage:** Checkpoints stored in separate directories for easy comparison
+
+**Configuration:**
+- H100: batch=12, workers=14, full optimizations (Flash Attention 2, torch compile, fused optimizer)
+- H100: 100GB local volume for checkpoint persistence (~$0.10/hr extra)
+- Colab: batch=4, workers=4, standard configuration
+
+**Folder Structure:**
+```
+data/checkpoints/
+├── llama-3.1-8b-phase1a-colab/    # Colab training (free, slower)
+└── llama-3.1-8b-phase1a-h100/     # H100 training (paid, faster)
+```
+
+**Implementation:** Created `notebooks/H100_Training_Vast_AI.ipynb` with step-by-step instructions.
+
+---
+
+### Decision: Google Colab Pro+ for Training (January 2025)
+
+**Original Plan:** RunPod H100 @ $2.17/hr or Lambda Labs A100 @ $1.29/hr.  
 
 **New Plan:** Google Colab Pro+ @ $49.99/month flat fee.  
 

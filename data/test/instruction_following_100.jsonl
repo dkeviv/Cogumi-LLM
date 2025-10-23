@@ -1,0 +1,96 @@
+{"prompt": "List three fruits that are red.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a sentence that contains exactly 10 words.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Provide a recipe for chocolate chip cookies, but format it as a numbered list with each step on a new line.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Describe the color blue without using the words 'blue', 'sky', or 'water'.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Count from 1 to 10, but only list the even numbers.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a paragraph about dogs, but ensure every sentence starts with a different letter of the alphabet (A, B, C, D).", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Name five countries in Europe.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a haiku about winter (remember: 5 syllables, 7 syllables, 5 syllables).", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "List the days of the week in reverse order.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a short story (exactly 50 words) about a robot learning to feel emotions.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Describe how to make a peanut butter and jelly sandwich in exactly three steps.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name three animals that can fly.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a dialogue between two people meeting for the first time, with each person speaking exactly three times.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "List the months of the year that have exactly 30 days.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Compose an acrostic poem using the word FRIEND (first letter of each line spells FRIEND).", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Describe the taste of an apple without using any taste-related words (sweet, sour, etc.).", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Count backwards from 10 to 1.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a product description for a fictional smart watch, formatted with bullet points for features and a separate section for specifications.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name the four seasons in order, starting with spring.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a letter of complaint to a restaurant, but make sure it is exactly 100 words long (not 99, not 101).", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "List five common vegetables.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Provide driving directions from a house to a grocery store, using only left and right turns (no street names).", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Spell 'accommodation' backwards.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a news article headline and first paragraph about a cat saving a dog, ensuring the paragraph contains exactly three sentences.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name three primary colors.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a conversation between a customer and a tech support agent, where the customer's responses only contain questions and the agent's responses only contain statements.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "List the vowels in the English alphabet.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a review of a fictional book, but format it as: 1) Title and Author, 2) Plot Summary (2 sentences), 3) Pros (3 bullet points), 4) Cons (2 bullet points), 5) Rating (out of 5 stars).", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Say the alphabet but only include letters A through J.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Describe how to tie a shoe, but use exactly 5 steps and make each step a complete sentence.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name four shapes.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write an email to your boss requesting time off, ensuring you: 1) start with a greeting, 2) state the dates you need off, 3) provide a reason, 4) offer to help with coverage, and 5) end with a professional closing.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Count from 1 to 20, but only say the numbers divisible by 5.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a menu for a restaurant with: 1) exactly 3 appetizers, 2) exactly 4 main courses, 3) exactly 2 desserts, and include prices in the format $X.XX for each item.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Name three types of weather.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a set of instructions for making coffee using a French press, formatted as a numbered list with exactly 6 steps.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "List the first five letters of the alphabet.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Compose a thank-you note where every sentence must contain the word 'appreciate' or 'grateful'.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Name three musical instruments.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a weather forecast for tomorrow, including: temperature range, precipitation chance, wind conditions, and a brief summary. Format each element on its own line with a label.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Count by tens from 10 to 100.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a character profile with exactly these sections (no more, no less): Name, Age, Occupation, Three Personality Traits, One Secret, and a Short Background (exactly 2 sentences).", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Name five colors.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a short bio for a fictional author that includes: their name, birth year, nationality, number of books published, and their most famous work. Format it as a single paragraph.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "List the numbers from 1 to 5.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Describe a sunset using exactly 20 words, no more, no less.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name three sports.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a job posting for a software engineer that includes: 1) Job title, 2) Company name, 3) Location, 4) Three required qualifications (as bullet points), 5) Two preferred qualifications (as bullet points), 6) Salary range, and 7) Application instructions.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Say the alphabet backwards from Z to A.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a grocery list organized into three categories: Produce, Dairy, and Pantry Items. Include at least 2 items in each category.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name three animals that live in water.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a tweet (280 characters or less) announcing a new product launch, and ensure it includes: the product name, one key feature, a call-to-action, and exactly two hashtags.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Count from 1 to 10, but skip the number 7.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Compose a limerick about a cat (remember the AABBA rhyme scheme and the typical limerick rhythm).", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Name three types of trees.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write an itinerary for a one-day trip to a city, with activities planned for morning, afternoon, and evening. Include specific times for each activity.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "List three things you might find in a kitchen.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a multiple-choice quiz question about world geography with: 1) a question, 2) exactly four answer choices labeled A-D, 3) one correct answer (marked), and 4) an explanation of why the correct answer is right.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Name four body parts.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a movie synopsis in exactly three sentences: one for the setup, one for the conflict, and one for the resolution.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Count from 2 to 10 by twos (2, 4, 6, 8, 10).", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Develop a weekly workout plan for a beginner, formatted as a table with columns for: Day, Exercise Type, Duration, and Notes. Include all 7 days of the week.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Name three types of buildings.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a paragraph describing a beach scene, but ensure: 1) the paragraph is exactly 5 sentences long, 2) each sentence contains at least one color word, and 3) at least one sentence mentions a sound.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "List three types of transportation.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a pros and cons list for working from home. Include exactly 3 pros and exactly 3 cons.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name five furniture items.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a sonnet about the moon (14 lines, iambic pentameter, ABAB CDCD EFEF GG rhyme scheme).", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Say your ABCs but only the consonants.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Compose a meeting agenda with: 1) Meeting title, 2) Date and time, 3) Attendees list, 4) At least 4 agenda items with time allocations, and 5) Total meeting duration.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name three breakfast foods.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a cover letter for a job application, ensuring it has: 1) your address and date at the top, 2) the employer's address, 3) a greeting, 4) exactly three body paragraphs (introduction, qualifications, closing), 5) a professional sign-off, and 6) your name.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Count from 5 to 15.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Describe the process of photosynthesis in exactly 4 sentences, where each sentence explains a different stage or aspect of the process.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name three emotions.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a FAQ section with exactly 5 questions and answers about a fictional smartphone. Format each Q&A clearly.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "List three planets in our solar system.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a dialogue between a teacher and student where: 1) they discuss a homework assignment, 2) each person speaks exactly 4 times, 3) the student asks at least 2 questions, and 4) the conversation ends with a resolution.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Name three countries in Asia.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a step-by-step guide for planting a garden, with exactly 7 steps formatted as a numbered list.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "List three types of clothing.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a persuasive essay outline with: I. Introduction (with thesis statement), II. Three body paragraphs (each with a topic sentence and two supporting points), III. Conclusion. Use proper outline formatting.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Count from 10 to 20.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Describe a roller coaster ride using exactly 30 words.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name three school subjects.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a series of 5 tweets (each 280 characters or less) that tell a complete story. Number them 1/5, 2/5, etc.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "List three types of drinks.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a recipe card format with: Recipe Name, Prep Time, Cook Time, Servings, Ingredients (as bullet points), and Instructions (as numbered steps). Use a fictional recipe.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name three jobs or professions.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write a compare-and-contrast essay comparing cats and dogs. Structure it as: Introduction, 3 Similarities (one paragraph), 3 Differences (one paragraph), Conclusion. Keep the total under 250 words.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "Count from 1 to 5, then backwards from 5 to 1.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Describe your morning routine in exactly 6 steps, with each step being one sentence.", "category": "instruction_following", "difficulty": "medium"}
+{"prompt": "Name three holidays.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Create a business proposal outline that includes: Executive Summary, Problem Statement, Proposed Solution, Timeline (with at least 4 milestones), Budget Breakdown (at least 3 line items), and Expected Outcomes. Keep it to one page.", "category": "instruction_following", "difficulty": "hard"}
+{"prompt": "List three types of flowers.", "category": "instruction_following", "difficulty": "easy"}
+{"prompt": "Write an acrostic poem using the word SUMMER, where each line relates to the season.", "category": "instruction_following", "difficulty": "medium"}
