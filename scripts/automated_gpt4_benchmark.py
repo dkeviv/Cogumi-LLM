@@ -21,7 +21,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from datasets import load_dataset
 from tqdm import tqdm
-import openai
+from openai import OpenAI
 import numpy as np
 from collections import defaultdict
 
@@ -40,8 +40,8 @@ class BenchmarkSuite:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Initialize OpenAI
-        openai.api_key = openai_key
+        # Initialize OpenAI client (new SDK v1.0+)
+        self.openai_client = OpenAI(api_key=openai_key)
         
         # Load local model
         print("📥 Loading local model...")
@@ -88,13 +88,14 @@ class BenchmarkSuite:
     def generate_gpt4(self, prompt: str, max_tokens: int = 512) -> str:
         """Generate response from GPT-4."""
         try:
-            response = openai.ChatCompletion.create(
+            response = self.openai_client.chat.completions.create(
                 model="gpt-4",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=0.7
             )
-            return response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            return content.strip() if content else "[ERROR: Empty response]"
         except Exception as e:
             print(f"⚠️ GPT-4 API error: {e}")
             return "[ERROR]"
@@ -128,14 +129,20 @@ Provide your rating in this JSON format:
 """
         
         try:
-            response = openai.ChatCompletion.create(
+            response = self.openai_client.chat.completions.create(
                 model="gpt-4",
                 messages=[{"role": "user", "content": judge_prompt}],
                 max_tokens=500,
                 temperature=0.1  # Low temperature for consistent judging
             )
             
-            judgment_text = response.choices[0].message.content.strip()
+            judgment_text = response.choices[0].message.content
+            if judgment_text:
+                judgment_text = judgment_text.strip()
+            else:
+                print("⚠️ Empty judgment response")
+                return None
+                
             # Extract JSON from response
             import re
             json_match = re.search(r'\{.*\}', judgment_text, re.DOTALL)
