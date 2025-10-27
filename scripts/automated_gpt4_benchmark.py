@@ -48,6 +48,11 @@ class BenchmarkSuite:
         print("📥 Loading local model...")
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         
+        # CRITICAL: Set pad token for Llama-3.1 (it doesn't have one by default)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.tokenizer.padding_side = "right"
+        
         # Check if this is a LoRA adapter or full model
         adapter_config_path = Path(model_path) / "adapter_config.json"
         
