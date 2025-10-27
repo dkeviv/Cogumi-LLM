@@ -137,10 +137,22 @@ def test_model(tokenizer, model, model_name):
         print(response)
         
         expected = problem['expected_answer']
-        found = expected in response
+        
+        # Smart answer extraction - handle different formats
+        import re
+        # Extract all numbers from response (handles $70,000 or 70000 or \boxed{70000})
+        numbers_in_response = re.findall(r'\$?[\d,]+', response)
+        # Clean numbers (remove $ and ,)
+        cleaned_numbers = [n.replace('$', '').replace(',', '') for n in numbers_in_response]
+        # Clean expected (remove $ and ,)
+        expected_clean = expected.replace('$', '').replace(',', '')
+        
+        # Check if expected number appears anywhere in response
+        found = expected_clean in cleaned_numbers or expected in response
         
         print(f"\nExpected answer: {expected}")
-        print(f"Found in response: {'✓ YES' if found else '✗ NO'}")
+        print(f"Numbers found in response: {numbers_in_response}")
+        print(f"Match found: {'✓ YES' if found else '✗ NO'}")
 
 def main():
     adapter_path = "/workspace/data/Cogumi-LLM/checkpoints/final"
