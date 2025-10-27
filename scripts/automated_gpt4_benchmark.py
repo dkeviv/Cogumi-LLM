@@ -69,7 +69,11 @@ class BenchmarkSuite:
             print(f"🔧 Applying LoRA adapter from: {model_path}")
             # Load and apply adapter
             self.model = PeftModel.from_pretrained(base_model, model_path)
-            print("✅ Base model + LoRA adapter loaded successfully!")
+            
+            # CRITICAL: Merge adapter for proper inference
+            print("🔧 Merging LoRA adapter with base model...")
+            self.model = self.model.merge_and_unload()
+            print("✅ Base model + LoRA adapter merged successfully!")
         else:
             print("📥 Loading full model...")
             # Load as regular model
@@ -80,6 +84,10 @@ class BenchmarkSuite:
                 load_in_4bit=True
             )
             print("✅ Full model loaded")
+        
+        # CRITICAL: Set to evaluation mode
+        self.model.eval()
+        print("✅ Model set to evaluation mode")
         
         # Benchmark categories
         self.categories = {
@@ -94,8 +102,15 @@ class BenchmarkSuite:
         self.results = defaultdict(lambda: {"local": [], "gpt4": [], "wins": 0, "losses": 0, "ties": 0})
     
     def generate_local(self, prompt: str, max_tokens: int = 512) -> str:
-        """Generate response from local model."""
-        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+        """Generate response from local model with proper Llama-3.1-Instruct formatting."""
+        # Format prompt for Llama-3.1-Instruct chat format
+        formatted_prompt = f"""<|begin_of_text|><|start_header_id|>user<|end_header_id|>
+
+{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+"""
+        
+        inputs = self.tokenizer(formatted_prompt, return_tensors="pt").to(self.model.device)
         
         with torch.no_grad():
             outputs = self.model.generate(
@@ -108,8 +123,12 @@ class BenchmarkSuite:
             )
         
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        # Extract only the new generation
-        response = response[len(prompt):].strip()
+        # Extract only the assistant's response
+        if "<|start_header_id|>assistant<|end_header_id|>" in response:
+            response = response.split("<|start_header_id|>assistant<|end_header_id|>")[-1].strip()
+        else:
+            # Fallback: remove input prompt
+            response = response[len(formatted_prompt):].strip()
         return response
     
     def generate_gpt4(self, prompt: str, max_tokens: int = 512) -> str:
