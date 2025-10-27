@@ -121,9 +121,8 @@ class BenchmarkSuite:
             outputs = self.model.generate(
                 **inputs,
                 max_new_tokens=max_tokens,
-                temperature=0.7,
-                top_p=0.95,
-                do_sample=True,
+                temperature=1.0,  # No temperature scaling for deterministic output
+                do_sample=False,  # Greedy decoding - always pick highest probability token
                 pad_token_id=self.tokenizer.eos_token_id
             )
         
