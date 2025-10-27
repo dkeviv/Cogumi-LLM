@@ -106,7 +106,7 @@ class BenchmarkSuite:
         
         self.results = defaultdict(lambda: {"local": [], "gpt4": [], "wins": 0, "losses": 0, "ties": 0})
     
-    def generate_local(self, prompt: str, max_tokens: int = 512) -> str:
+    def generate_local(self, prompt: str, max_tokens: int = 512, temperature: float = 1.0, do_sample: bool = False) -> str:
         """Generate response from local model with proper Llama-3.1-Instruct formatting."""
         # Format prompt for Llama-3.1-Instruct chat format
         formatted_prompt = f"""<|begin_of_text|><|start_header_id|>user<|end_header_id|>
@@ -121,8 +121,8 @@ class BenchmarkSuite:
             outputs = self.model.generate(
                 **inputs,
                 max_new_tokens=max_tokens,
-                temperature=1.0,  # No temperature scaling for deterministic output
-                do_sample=False,  # Greedy decoding - always pick highest probability token
+                temperature=temperature,  
+                do_sample=do_sample,
                 pad_token_id=self.tokenizer.eos_token_id
             )
         
@@ -145,14 +145,14 @@ class BenchmarkSuite:
         
         return response
     
-    def generate_gpt4(self, prompt: str, max_tokens: int = 512) -> str:
+    def generate_gpt4(self, prompt: str, max_tokens: int = 512, temperature: float = 0.7) -> str:
         """Generate response from GPT-4."""
         try:
             response = self.openai_client.chat.completions.create(
                 model="gpt-4",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
-                temperature=0.7
+                temperature=temperature
             )
             content = response.choices[0].message.content
             return content.strip() if content else "[ERROR: Empty response]"
@@ -299,6 +299,21 @@ Provide your rating in this JSON format:
         print(f"📊 Benchmarking: {category.upper()}")
         print(f"{'='*60}")
         
+        # Category-specific temperature settings
+        # Math and Code need deterministic reasoning (temp=0.0)
+        # Creative tasks benefit from diversity (temp=0.7)
+        category_configs = {
+            "math": {"local_temp": 1.0, "local_sample": False, "gpt4_temp": 0.0},
+            "code": {"local_temp": 1.0, "local_sample": False, "gpt4_temp": 0.0},
+            "reasoning": {"local_temp": 1.0, "local_sample": False, "gpt4_temp": 0.0},
+            "knowledge": {"local_temp": 1.0, "local_sample": False, "gpt4_temp": 0.0},
+            "instruction": {"local_temp": 1.0, "local_sample": False, "gpt4_temp": 0.0},
+            "creativity": {"local_temp": 0.7, "local_sample": True, "gpt4_temp": 0.7}
+        }
+        
+        config = category_configs.get(category, {"local_temp": 1.0, "local_sample": False, "gpt4_temp": 0.0})
+        print(f"🎯 Config: Local (temp={config['local_temp']}, sample={config['local_sample']}), GPT-4 (temp={config['gpt4_temp']})")
+        
         # Load test examples
         test_examples = self.load_test_dataset(category, num_samples)
         print(f"Loaded {len(test_examples)} test examples")
@@ -309,11 +324,15 @@ Provide your rating in this JSON format:
         for i, example in enumerate(tqdm(test_examples, desc=f"Testing {category}")):
             prompt = example['prompt']
             
-            # Generate responses
-            local_response = self.generate_local(prompt)
+            # Generate responses with category-specific config
+            local_response = self.generate_local(
+                prompt, 
+                temperature=config['local_temp'],
+                do_sample=config['local_sample']
+            )
             time.sleep(0.5)  # Rate limiting
             
-            gpt4_response = self.generate_gpt4(prompt)
+            gpt4_response = self.generate_gpt4(prompt, temperature=config['gpt4_temp'])
             time.sleep(1.0)  # Rate limiting for API
             
             # Judge responses
@@ -419,13 +438,24 @@ Provide your rating in this JSON format:
         
         # Add per-category results
         for category, results in self.results.items():
+            wins = int(results['wins']) if isinstance(results['wins'], int) else 0
+            losses = int(results['losses']) if isinstance(results['losses'], int) else 0
+            ties = int(results['ties']) if isinstance(results['ties'], int) else 0
+            total = wins + losses + ties
+            
+            # Calculate win rate (excluding ties)
+            decisive_battles = wins + losses
+            win_rate_excluding_ties = (wins / decisive_battles * 100) if decisive_battles > 0 else 0
+            
             report["by_category"][category] = {
                 "wins": results['wins'],
                 "losses": results['losses'],
                 "ties": results['ties'],
                 "win_rate": results.get('win_rate', 0) * 100,
+                "win_rate_excluding_ties": win_rate_excluding_ties,
                 "score": results.get('score', 0) * 100,
-                "description": self.categories.get(category, "")
+                "description": self.categories.get(category, ""),
+                "analysis": f"Win ratio {wins}:{losses} (ties: {ties}/{total}={ties/total*100:.0f}%)"
             }
         
         # Save report
@@ -461,12 +491,30 @@ Provide your rating in this JSON format:
         print(f"   Score: {report['overall']['score_vs_gpt4']:.1f}%")
         print(f"   Rating: {report['overall']['performance_rating']}")
         print(f"   Win Rate: {report['overall']['win_rate']*100:.1f}%")
-        print(f"\n📈 Breakdown by Category:")
+        
+        # Calculate overall win/loss/tie breakdown
+        total_wins = sum(r['wins'] for r in report['by_category'].values() if isinstance(r['wins'], int))
+        total_losses = sum(r['losses'] for r in report['by_category'].values() if isinstance(r['losses'], int))
+        total_ties = sum(r['ties'] for r in report['by_category'].values() if isinstance(r['ties'], int))
+        decisive = total_wins + total_losses
+        
+        if decisive > 0:
+            win_rate_decisive = total_wins / decisive * 100
+            print(f"\n� Win/Loss Analysis (excluding ties):")
+            print(f"   Win Ratio: {total_wins}:{total_losses} ({total_wins/total_losses:.2f}:1)")
+            print(f"   Win Rate (decisive only): {win_rate_decisive:.1f}%")
+            print(f"   Ties: {total_ties} ({total_ties/(total_wins+total_losses+total_ties)*100:.0f}% of all tests)")
+        
+        print(f"\n�📈 Breakdown by Category:")
         
         for category, results in sorted(report['by_category'].items(), key=lambda x: x[1]['score'], reverse=True):
             print(f"\n   {category.upper()}:")
             print(f"      Score: {results['score']:.1f}%")
             print(f"      W/L/T: {results['wins']}/{results['losses']}/{results['ties']}")
+            if 'win_rate_excluding_ties' in results:
+                print(f"      Win Rate (decisive): {results['win_rate_excluding_ties']:.1f}%")
+            if 'analysis' in results:
+                print(f"      {results['analysis']}")
         
         print(f"\n⏱️ Total Time: {report['elapsed_time_minutes']:.1f} minutes")
         print(f"{'='*60}\n")

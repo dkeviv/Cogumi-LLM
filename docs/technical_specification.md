@@ -1,7 +1,7 @@
 # TECHNICAL SPECIFICATION - LLAMA-3.2-8B COGUMI-LLM
 
-**Version:** 2.0  
-**Date:** October 19, 2025  
+**Version:** 2.0
+**Date:** October 19, 2025
 **Status:** Phase 0 Complete | Phase 1 Ready to Start
 
 ---
@@ -11,6 +11,7 @@
 Cogumi-LLM is a 668MB AI model system that beats GPT-4 on code, reasoning, and automation tasks through extreme compression and domain-specific modifiers. The system uses **LLAMA-3.2-8B** as the student model, applying English-only vocabulary optimization, failure-based cascaded distillation, 95% compression via Neural Magic pruning and AWQ quantization, and hot-swappable domain modifiers trained exclusively on base model failures.
 
 **Key Achievements:**
+
 - ✅ **Phase 0 Complete**: 640K curated examples via multi-teacher distillation with advanced deduplication
 - 🎯 **Target**: 668MB system (520MB base + 3×40-50MB modifiers) beating GPT-4
 - 💰 **Budget**: $1,717 for MVP, 93% automated via Claude 4.5 code generation
@@ -60,29 +61,33 @@ Cogumi-LLM is a 668MB AI model system that beats GPT-4 on code, reasoning, and a
 ## PHASE 0: CURATED DATASET (IMPLEMENTED ✅)
 
 ### Objective
+
 Create 640K high-quality instruction-response pairs covering code, reasoning, math, science, conversation, and creative domains with advanced deduplication.
 
 ### Implementation Details
 
-#### 1. Multi-Teacher Distillation
+#### 1. Multi-Teacher Distillation (Original Plan - not used)
 
 **Teacher Models:**
+
 - **Groq Llama-405B** (40% of data, FREE API)
+
   - Used for: General reasoning, conversation, basic code
   - Advantages: Free, high quality, fast inference
   - Rate limits: Generous for research use
-  
 - **GPT-4o** (35% of data, OpenAI API)
+
   - Used for: Complex reasoning, nuanced understanding, quality assurance
   - Cost: $5 per million input tokens, $15 per million output
   - Selection criteria: Medium-hard examples requiring sophisticated reasoning
-
 - **Together.ai Qwen3-Coder-480B** (25% of data)
+
   - Used for: Code generation, algorithm implementation, debugging
   - Cost: $0.60 per million tokens
   - Specialization: Programming, software engineering, code review
 
-**Data Collection Process:**
+#### **Data Collection Process: (New selected Approach)**
+
 1. Identified source datasets: Alpaca-GPT4, Anthropic-HH, CodeAlpaca, Dolly, MetaMathQA, OpenOrca
 2. Sampled diverse examples across difficulty levels and domains
 3. Generated responses using appropriate teacher model for each domain
@@ -91,6 +96,7 @@ Create 640K high-quality instruction-response pairs covering code, reasoning, ma
 #### 2. Quality Filtering
 
 **Automated Scoring:**
+
 - GPT-4-mini evaluates each example on 1-10 scale
 - Scoring criteria:
   - **Factual accuracy** (0-3 points)
@@ -101,6 +107,7 @@ Create 640K high-quality instruction-response pairs covering code, reasoning, ma
 - Cost-effective: $0.15 per million tokens for scoring
 
 **Rule-Based Filters:**
+
 - **Length**: 150-2048 tokens (exclude too short/long)
 - **Language**: English-only (non-English removed via langdetect)
 - **Content**: Remove offensive, PII, copyright-problematic material
@@ -111,6 +118,7 @@ Create 640K high-quality instruction-response pairs covering code, reasoning, ma
 **Method:** MinHash Locality-Sensitive Hashing (LSH)
 
 **Algorithm:**
+
 ```python
 # Pseudo-code for deduplication process
 def deduplicate(examples, threshold=0.8):
@@ -120,12 +128,12 @@ def deduplicate(examples, threshold=0.8):
         text = ex['instruction'] + ex['response']
         signature = compute_minhash(text, num_perm=128)
         minhashes[ex['id']] = signature
-    
+  
     # Step 2: LSH bucketing
     lsh = LSH(threshold=threshold, num_perm=128)
     for ex_id, sig in minhashes.items():
         lsh.insert(ex_id, sig)
-    
+  
     # Step 3: Find duplicates
     duplicates = set()
     for ex_id in minhashes:
@@ -138,18 +146,20 @@ def deduplicate(examples, threshold=0.8):
                 )
                 if similarity >= threshold:
                     duplicates.add(max(ex_id, candidate))
-    
+  
     # Step 4: Remove duplicates
     return [ex for ex in examples if ex['id'] not in duplicates]
 ```
 
 **Parameters:**
+
 - **Permutations**: 128 (balance between accuracy and speed)
 - **Threshold**: 0.8 Jaccard similarity (strict deduplication)
 - **Shingling**: Character 3-grams for text representation
 - **Bands/Rows**: Auto-tuned for 0.8 threshold
 
 **Results:**
+
 - Initial: 750K examples
 - Duplicates found: ~150K (20%)
 - Final: 640K unique examples
@@ -158,6 +168,7 @@ def deduplicate(examples, threshold=0.8):
 #### 4. Format Standardization
 
 **Target Format:**
+
 ```json
 {
   "instruction": "User's query or task description",
@@ -175,28 +186,29 @@ def deduplicate(examples, threshold=0.8):
 
 ### Dataset Statistics
 
-| Metric | Value |
-|--------|-------|
-| **Total Examples** | 640,637 |
-| **Unique Examples** | 100% (post-dedup) |
-| **English Purity** | 99.46% (verified) |
-| **Average Tokens** | 847 |
-| **Average Quality** | 8.2/10 |
-| **Code Examples** | 192,191 (30%) |
-| **Reasoning Examples** | 160,159 (25%) |
-| **Math Examples** | 96,096 (15%) |
-| **Science Examples** | 64,064 (10%) |
-| **Conversation Examples** | 64,064 (10%) |
-| **Creative Examples** | 64,063 (10%) |
-| **Easy Difficulty** | 192,191 (30%) |
-| **Medium Difficulty** | 320,319 (50%) |
-| **Hard Difficulty** | 128,127 (20%) |
+| Metric                          | Value             |
+| ------------------------------- | ----------------- |
+| **Total Examples**        | 640,637           |
+| **Unique Examples**       | 100% (post-dedup) |
+| **English Purity**        | 99.46% (verified) |
+| **Average Tokens**        | 847               |
+| **Average Quality**       | 8.2/10            |
+| **Code Examples**         | 192,191 (30%)     |
+| **Reasoning Examples**    | 160,159 (25%)     |
+| **Math Examples**         | 96,096 (15%)      |
+| **Science Examples**      | 64,064 (10%)      |
+| **Conversation Examples** | 64,064 (10%)      |
+| **Creative Examples**     | 64,063 (10%)      |
+| **Easy Difficulty**       | 192,191 (30%)     |
+| **Medium Difficulty**     | 320,319 (50%)     |
+| **Hard Difficulty**       | 128,127 (20%)     |
 
 ### Language Verification
 
 **Verification Method:** `langdetect` library on 10,000 random samples
 
 **Results:**
+
 - **English**: 9,946 examples (99.46%)
 - **Non-English**: 54 examples (0.54%)
   - Russian (ru): 23 examples
@@ -207,12 +219,14 @@ def deduplicate(examples, threshold=0.8):
   - Other languages: 14 examples (19 languages total)
 
 **Non-English Categories:**
+
 - Translation tasks: ~40% (intentionally multilingual)
 - Code comments in non-English: ~30%
 - Multilingual test cases: ~20%
 - False positives (English misclassified): ~10%
 
 **Impact Assessment:**
+
 - Estimated accuracy impact: <0.05% (negligible)
 - 346 non-English examples × 3 epochs = 1,038 exposures
 - Out of 1.92M total training steps = 0.054%
@@ -223,11 +237,11 @@ def deduplicate(examples, threshold=0.8):
 
 ### Storage & Access
 
-**File Location:** `/data/phase1/public_500k_filtered.jsonl`  
-**Format:** JSON Lines (one example per line)  
-**Size:** 870MB uncompressed  
-**Examples Count:** 640,637 lines  
-**Checksum:** SHA-256 verified  
+**File Location:** `/data/phase1/public_500k_filtered.jsonl`
+**Format:** JSON Lines (one example per line)
+**Size:** 870MB uncompressed
+**Examples Count:** 640,637 lines
+**Checksum:** SHA-256 verified
 **Backup:** Stored on external drive + cloud
 
 ---
@@ -237,6 +251,7 @@ def deduplicate(examples, threshold=0.8):
 ### Phase 1: Base Model Training
 
 **Student Model:** LLAMA-3.2-8B
+
 - **Parameters**: 8.3B total (8,030M weights)
 - **Vocabulary**: 128,256 tokens (kept full, not trimmed)
 - **Architecture**: 32 layers, 4096 hidden dim, 32 attention heads
@@ -245,6 +260,7 @@ def deduplicate(examples, threshold=0.8):
 - **Base Size**: 16GB (FP16), 8GB (FP8), 4GB (4-bit quantized)
 
 **Why LLAMA-3.2 over Qwen-7B?**
+
 - +1B more parameters (8B vs 7B) = +14% capacity
 - +2-3% better English baseline performance
 - Better supported by Unsloth and compression tools
@@ -260,16 +276,18 @@ def deduplicate(examples, threshold=0.8):
 QLoRA (Quantized Low-Rank Adaptation) enables efficient fine-tuning of large language models by combining two techniques:
 
 1. **4-bit Quantization**: Base model loaded in 4-bit NF4 (Normal Float 4-bit) format
+
    - Reduces memory: 16GB → 4.8GB for LLAMA-3.2-8B
    - Maintains quality: <1% degradation vs FP16
    - Uses double quantization for scales/zero-points
-
 2. **LoRA Adapters**: Low-rank trainable matrices added to frozen base
+
    - Decomposes weight updates: ΔW = BA (where B is r×d, A is d×r, r << d)
    - Only trains adapters: ~100M params vs 8B total (1.2% trainable)
    - Memory efficient: No gradients for 99% of model
 
 **Mathematical Foundation:**
+
 ```
 Original: h = Wx
 QLoRA:    h = W_frozen(x) + B·A·x  where rank(B·A) = r << d
@@ -277,15 +295,15 @@ QLoRA:    h = W_frozen(x) + B·A·x  where rank(B·A) = r << d
 
 **Memory Breakdown (LLAMA-3.2-8B on A100 40GB):**
 
-| Component | Memory | Calculation |
-|-----------|--------|-------------|
-| Base Model (4-bit) | 4.8 GB | 8.3B params × 4 bits = 4.15GB + overhead |
-| LoRA Adapters (FP16) | 0.4 GB | ~100M params × 2 bytes = 200MB × 2 (optimizer states) |
-| Activations (batch 4) | 12 GB | 4 samples × 2048 tokens × 4096 dim × 32 layers × 2 bytes |
-| Optimizer States | 5 GB | AdamW momentum + variance for adapters |
-| Gradients | 1.5 GB | Gradients for LoRA layers |
-| Gradient Checkpointing | -7 GB | Saves activation memory (recompute during backward) |
-| **Total** | **24.6 GB** | Comfortably fits in A100 40GB |
+| Component              | Memory            | Calculation                                                  |
+| ---------------------- | ----------------- | ------------------------------------------------------------ |
+| Base Model (4-bit)     | 4.8 GB            | 8.3B params × 4 bits = 4.15GB + overhead                    |
+| LoRA Adapters (FP16)   | 0.4 GB            | ~100M params × 2 bytes = 200MB × 2 (optimizer states)      |
+| Activations (batch 4)  | 12 GB             | 4 samples × 2048 tokens × 4096 dim × 32 layers × 2 bytes |
+| Optimizer States       | 5 GB              | AdamW momentum + variance for adapters                       |
+| Gradients              | 1.5 GB            | Gradients for LoRA layers                                    |
+| Gradient Checkpointing | -7 GB             | Saves activation memory (recompute during backward)          |
+| **Total**        | **24.6 GB** | Comfortably fits in A100 40GB                                |
 
 **Without QLoRA:** Full fine-tuning would require 120-140GB (impossible on single A100)
 
@@ -294,6 +312,7 @@ QLoRA:    h = W_frozen(x) + B·A·x  where rank(B·A) = r << d
 #### Phase 1A Configuration (Detailed)
 
 **Framework:** HuggingFace Transformers + TRL + Unsloth
+
 - **Unsloth**: Optimized 4-bit QLoRA with Flash Attention 2 integration
 - **TRL SFTTrainer**: Supervised fine-tuning with sample packing
 - **HuggingFace Transformers**: Core model loading and tokenization
@@ -303,18 +322,19 @@ QLoRA:    h = W_frozen(x) + B·A·x  where rank(B·A) = r << d
 
 **LoRA Architecture:**
 
-| Module | Rank | Alpha | Dropout | Trainable Params |
-|--------|------|-------|---------|------------------|
-| q_proj (Query) | 64 | 16 | 0.05 | ~8M per layer × 32 = 256M |
-| k_proj (Key) | 64 | 16 | 0.05 | ~8M per layer × 32 = 256M |
-| v_proj (Value) | 64 | 16 | 0.05 | ~8M per layer × 32 = 256M |
-| o_proj (Output) | 64 | 16 | 0.05 | ~8M per layer × 32 = 256M |
-| gate_proj (FFN Gate) | 64 | 16 | 0.05 | ~21M per layer × 32 = 672M |
-| up_proj (FFN Up) | 64 | 16 | 0.05 | ~21M per layer × 32 = 672M |
-| down_proj (FFN Down) | 64 | 16 | 0.05 | ~21M per layer × 32 = 672M |
-| **Total** | - | - | - | **~100M trainable (1.2% of 8.3B)** |
+| Module               | Rank | Alpha | Dropout | Trainable Params                         |
+| -------------------- | ---- | ----- | ------- | ---------------------------------------- |
+| q_proj (Query)       | 64   | 16    | 0.05    | ~8M per layer × 32 = 256M               |
+| k_proj (Key)         | 64   | 16    | 0.05    | ~8M per layer × 32 = 256M               |
+| v_proj (Value)       | 64   | 16    | 0.05    | ~8M per layer × 32 = 256M               |
+| o_proj (Output)      | 64   | 16    | 0.05    | ~8M per layer × 32 = 256M               |
+| gate_proj (FFN Gate) | 64   | 16    | 0.05    | ~21M per layer × 32 = 672M              |
+| up_proj (FFN Up)     | 64   | 16    | 0.05    | ~21M per layer × 32 = 672M              |
+| down_proj (FFN Down) | 64   | 16    | 0.05    | ~21M per layer × 32 = 672M              |
+| **Total**      | -    | -     | -       | **~100M trainable (1.2% of 8.3B)** |
 
 **LoRA Parameters Explained:**
+
 - **Rank (r=64)**: Sweet spot for quality vs efficiency
   - Lower rank (32): Faster, less memory, but -2% quality
   - Higher rank (128): +1% quality, but 2× memory & training time
@@ -326,6 +346,7 @@ QLoRA:    h = W_frozen(x) + B·A·x  where rank(B·A) = r << d
   - Improves generalization to unseen data
 
 **Quantization Configuration:**
+
 ```yaml
 load_in_4bit: true
 bnb_4bit_quant_type: nf4        # Normal Float 4-bit (optimal for LLMs)
@@ -334,12 +355,14 @@ bnb_4bit_compute_dtype: bfloat16 # Compute in BF16 for stability
 ```
 
 **Why NF4 (Normal Float 4-bit)?**
+
 - Designed for neural network weight distributions (bell curve)
 - -7 to +7 range with more precision near zero
 - Better than uniform INT4: +0.5-1% quality
 - Supported by bitsandbytes library (CUDA optimized)
 
 **Training Script** (`train.py` - generated from notebook):
+
 ```python
 from unsloth import FastLanguageModel
 from trl import SFTTrainer
@@ -417,6 +440,7 @@ trainer.train()
 ```
 
 **YAML Configuration Reference** (for reference - actual implementation uses Python script):
+
 ```yaml
 # Model Configuration
 base_model: meta-llama/Meta-Llama-3.1-8B-Instruct
@@ -472,69 +496,70 @@ output_dir: /data/Cogumi-LLM/checkpoints
 
 **Training Hyperparameters Explained:**
 
-| Parameter | Value | Reasoning |
-|-----------|-------|-----------|
-| **Learning Rate** | 5e-6 | Conservative for stability; prevents catastrophic forgetting |
-| **Batch Size** | 64 (effective) | 32 per device × 2 gradient accumulation for stable gradients |
-| **Epochs** | 3 | 640K examples × 3 = 1.92M exposures; sufficient for convergence |
-| **Warmup Steps** | 500 | Gradual learning rate increase prevents early instability |
-| **Scheduler** | Cosine | Smooth decay from 5e-6 → near-zero by end of training |
-| **Weight Decay** | 0.01 | L2 regularization prevents overfitting to training data |
-| **Gradient Clipping** | 1.0 | Prevents exploding gradients (especially important for LoRA) |
-| **Precision** | BF16 + TF32 | BF16 for stability, TF32 for speed on Ampere/Hopper GPUs |
-| **Sequence Length** | 1024 | Reduced from 2048 for 2-4× faster attention (less padding waste) |
-| **Packing** | Enabled | Multiple examples per sequence, dramatically improves efficiency |
-| **Data Workers** | 10 | Parallel data loading eliminates CPU bottleneck |
-| **Prefetch Factor** | 4 | Prefetch 4 batches ahead to keep GPU fed |
+| Parameter                   | Value          | Reasoning                                                         |
+| --------------------------- | -------------- | ----------------------------------------------------------------- |
+| **Learning Rate**     | 5e-6           | Conservative for stability; prevents catastrophic forgetting      |
+| **Batch Size**        | 64 (effective) | 32 per device × 2 gradient accumulation for stable gradients     |
+| **Epochs**            | 3              | 640K examples × 3 = 1.92M exposures; sufficient for convergence  |
+| **Warmup Steps**      | 500            | Gradual learning rate increase prevents early instability         |
+| **Scheduler**         | Cosine         | Smooth decay from 5e-6 → near-zero by end of training            |
+| **Weight Decay**      | 0.01           | L2 regularization prevents overfitting to training data           |
+| **Gradient Clipping** | 1.0            | Prevents exploding gradients (especially important for LoRA)      |
+| **Precision**         | BF16 + TF32    | BF16 for stability, TF32 for speed on Ampere/Hopper GPUs          |
+| **Sequence Length**   | 1024           | Reduced from 2048 for 2-4× faster attention (less padding waste) |
+| **Packing**           | Enabled        | Multiple examples per sequence, dramatically improves efficiency  |
+| **Data Workers**      | 10             | Parallel data loading eliminates CPU bottleneck                   |
+| **Prefetch Factor**   | 4              | Prefetch 4 batches ahead to keep GPU fed                          |
 
 **Key Optimizations for H100 Performance:**
 
 1. **FastLanguageModel.for_training()**: CRITICAL call that enables Flash Attention 2
+
    - Without: 0.5 it/s @ 35% GPU utilization
    - With: 5-12 it/s @ 100% GPU utilization
    - 10-24× speedup from this single line
-
 2. **Sequence Length Reduction (2048 → 1024)**:
+
    - Attention complexity: O(n²) where n = sequence length
    - 1024 vs 2048 = 4× faster attention computation
    - Most training examples <1024 tokens, so minimal data loss
    - Packing fills remaining space efficiently
-
 3. **Sample Packing**:
+
    - Combines multiple short examples into single 1024-token sequence
    - Eliminates padding waste (30-40% of compute on typical datasets)
    - Increases effective batch size by 1.5-2× without memory increase
-
 4. **Parallel Data Loading (10 workers + prefetch 4)**:
+
    - CPU preprocessing happens concurrently with GPU training
    - Eliminates data loading bottleneck (was causing 65% GPU idle time)
    - Prefetching ensures next batch ready before current finishes
-
 5. **Batch Size Tuning (32)**:
+
    - Large enough for stable gradients
    - Small enough to fit comfortably in 80GB VRAM
    - Paired with gradient_accumulation=2 for effective batch of 64
-
 6. **8-bit AdamW Optimizer**:
+
    - Reduces optimizer state memory by 75%
    - Enables larger batch sizes or longer sequences
    - Negligible quality impact vs 32-bit Adam
 
 **Training Timeline & Resource Requirements:**
 
-| Metric | Value | Details |
-|--------|-------|---------|
-| **GPU** | H100 80GB HBM3 | NVIDIA Hopper, 4th-gen tensor cores, NVLink |
-| **CUDA Version** | 12.8 | PyTorch 2.8.0+cu128 |
-| **Total Steps** | ~30,000 | 640K examples × 3 epochs ÷ 64 effective batch = 30,000 steps |
-| **Time per Step** | ~0.2 seconds | 5-12 it/s with Flash Attention 2 + packing (variable by example length) |
-| **Epoch Duration** | ~1 hour | 10,000 steps × 0.2 sec = 2,000 sec ≈ 0.55 hours |
-| **Total Training** | **~3 hours** | 3 epochs with 100% GPU utilization |
-| **Throughput** | 160-384 examples/sec | 64 effective batch × 5-12 it/s = 320 average ex/sec |
-| **GPU Utilization** | 99-100% | Optimal efficiency with Unsloth + packing + parallel data loading |
-| **Memory Usage** | ~40 GB | Comfortably within 80GB limit with headroom for longer sequences |
-| **Checkpoints** | 30 total | Every 1000 steps, keep best 5 (~10GB each) |
-| **Cloud Cost** | ~$10 | 3 hours × $3.00/hour (Vast.ai H100) |
+| Metric                    | Value                                       | Details                                                                 |
+| ------------------------- | ------------------------------------------- | ----------------------------------------------------------------------- |
+| **GPU**             | H100 80GB HBM3                              | NVIDIA Hopper, 4th-gen tensor cores, NVLink                             |
+| **CUDA Version**    | 12.8                                        | PyTorch 2.8.0+cu128                                                     |
+| **Total Steps**     | ~30,000                                     | 640K examples × 3 epochs ÷ 64 effective batch = 30,000 steps          |
+| **Time per Step**   | ~0.2 seconds                                | 5-12 it/s with Flash Attention 2 + packing (variable by example length) |
+| **Epoch Duration**  | ~1 hour                                     | 10,000 steps × 0.2 sec = 2,000 sec ≈ 0.55 hours                       |
+| **Total Training**  | **~3 hours**                          | 3 epochs with 100% GPU utilization                                      |
+| **Throughput**      | 160-384 examples/sec                        | 64 effective batch × 5-12 it/s = 320 average ex/sec                    |
+| **GPU Utilization** | 99-100%                                     | Optimal efficiency with Unsloth + packing + parallel data loading       |
+| **Memory Usage**    | ~40 GB                                      | Comfortably within 80GB limit with headroom for longer sequences        |
+| **Checkpoints**     | 30 total                                    | Every 1000 steps, keep best 5 (~10GB each)                              |
+| **Cloud Cost**      | ~$10 | 3 hours × $3.00/hour (Vast.ai H100) |                                                                         |
 
 **Training Execution (H100 Notebook Workflow):**
 
@@ -569,6 +594,7 @@ process.wait()
 ```
 
 **Expected Loss Curve:**
+
 ```
 Epoch 1:
   Steps 0-500:   Loss 2.8 → 2.2 (rapid initial learning)
@@ -587,6 +613,7 @@ Target Final Loss: 1.18-1.22 (indicates good generalization)
 ```
 
 **Live Training Output:**
+
 ```
 {'loss': 2.421, 'grad_norm': 1.234, 'learning_rate': 5e-06, 'epoch': 0.05}
   5%|▌         | 1500/30000 [05:00<1:35:00,  5.00 it/s]
@@ -594,6 +621,7 @@ GPU: 99% | Mem: 40.2GB/80GB | Temp: 68°C | Power: 650W
 ```
 
 **Validation Metrics (Tracked Every 500 Steps):**
+
 - **Perplexity**: Should decrease from ~16 → ~3.3 (exp(1.2))
 - **BLEU Score**: Instruction-response similarity (target >0.25)
 - **Exact Match**: Percentage of perfect responses (target >15%)
@@ -602,24 +630,25 @@ GPU: 99% | Mem: 40.2GB/80GB | Temp: 68°C | Power: 650W
 **Monitoring & Risk Mitigation:**
 
 1. **Loss Explosion Detection:**
+
    - If loss >3.0 after 1K steps → Reduce LR to 3e-6
    - If loss >5.0 → Stop and restart with LR 2e-6
-
 2. **Gradient Monitoring:**
+
    - Gradient norm logged every 10 steps
    - Clipping triggers >5% of time → Too aggressive, reduce LR
    - No clipping → Can increase LR to 7e-6
-
 3. **Validation Loss Divergence:**
+
    - If val_loss > train_loss + 0.5 → Overfitting, stop early
    - If val_loss not improving for 3K steps → Early stopping triggers
-
 4. **Checkpointing Strategy:**
+
    - Save every 1000 steps (~1 hour)
    - Keep best 5 by validation loss
    - If crash occurs → Resume from last checkpoint (loss <2% divergence)
-
 5. **GPU Health:**
+
    - Monitor temperature (should be <80°C)
    - Watch for CUDA OOM errors (reduce batch if occurs)
    - Log GPU utilization (target 85-95%)
@@ -627,32 +656,36 @@ GPU: 99% | Mem: 40.2GB/80GB | Temp: 68°C | Power: 650W
 ---
 
 #### Expected Output (Phase 1A)
+
 #### Expected Output (Phase 1A)
 
 **Model Artifacts:**
+
 - **LoRA Adapter**: 400MB (saved separately)
 - **Merged Model**: ~16.6GB (LoRA merged into base)
 - **Training Logs**: TensorBoard format (~50MB)
 - **Best Checkpoint**: Selected by lowest validation loss
 
 **Performance Targets:**
+
 - **Base LLAMA-3.2-8B**: ~68% average on benchmarks (no fine-tuning)
 - **Phase 1A Output**: 75-82% average (distilled from 640K examples)
 - **Improvement**: +7-14 percentage points vs base
 
 **Benchmark Predictions:**
 
-| Benchmark | Base | Phase 1A Target | GPT-4 | % of GPT-4 |
-|-----------|------|-----------------|-------|------------|
-| **MMLU** (General Knowledge) | 62% | 78-82% | 80% | 98-103% |
-| **HumanEval** (Code) | 40% | 58-62% | 65% | 89-95% |
-| **GSM8K** (Math) | 55% | 86-88% | 75% | 115-117% |
-| **BBH** (Reasoning) | 58% | 72-76% | 70% | 103-109% |
-| **HellaSwag** (Commonsense) | 75% | 85-88% | 88% | 97-100% |
-| **TruthfulQA** (Factuality) | 42% | 56-60% | 65% | 86-92% |
-| **Average** | **55%** | **73-76%** | **74%** | **99-103%** |
+| Benchmark                          | Base          | Phase 1A Target  | GPT-4         | % of GPT-4        |
+| ---------------------------------- | ------------- | ---------------- | ------------- | ----------------- |
+| **MMLU** (General Knowledge) | 62%           | 78-82%           | 80%           | 98-103%           |
+| **HumanEval** (Code)         | 40%           | 58-62%           | 65%           | 89-95%            |
+| **GSM8K** (Math)             | 55%           | 86-88%           | 75%           | 115-117%          |
+| **BBH** (Reasoning)          | 58%           | 72-76%           | 70%           | 103-109%          |
+| **HellaSwag** (Commonsense)  | 75%           | 85-88%           | 88%           | 97-100%           |
+| **TruthfulQA** (Factuality)  | 42%           | 56-60%           | 65%           | 86-92%            |
+| **Average**                  | **55%** | **73-76%** | **74%** | **99-103%** |
 
 **Why Phase 1A Beats Base by 15-20%:**
+
 - 640K curated examples (vs random web text)
 - Multi-teacher distillation (Llama-405B + GPT-4o + Qwen-Coder)
 - Quality filtered (only 7+/10 responses)
@@ -660,11 +693,13 @@ GPU: 99% | Mem: 40.2GB/80GB | Temp: 68°C | Power: 650W
 - Deduplication ensures diversity (0% redundancy)
 
 **Why Phase 1A Matches GPT-4 on Some Benchmarks:**
+
 - GSM8K: Heavy representation in training data (96K math examples)
 - BBH: Similar reasoning patterns to training distribution
 - MMLU: Broad knowledge coverage across all domains
 
 **Where Phase 1A Still Lags GPT-4:**
+
 - HumanEval: Code execution accuracy (needs more specialized training)
 - TruthfulQA: Factuality requires larger model capacity
 - Long-context: Limited to 2048 tokens vs GPT-4's 8K+
@@ -680,6 +715,7 @@ GPU: 99% | Mem: 40.2GB/80GB | Temp: 68°C | Power: 650W
 **Implementation**: `automated_gpt4_benchmark.py` (460 lines)
 
 **Test Categories** (50-200 samples each):
+
 1. **Mathematical Reasoning**: GSM8K-style word problems, algebra, geometry
 2. **Code Generation**: Python/JavaScript functions, debugging, algorithms
 3. **Logical Reasoning**: Deduction, pattern recognition, puzzles
@@ -688,28 +724,31 @@ GPU: 99% | Mem: 40.2GB/80GB | Temp: 68°C | Power: 650W
 6. **Creative Writing**: Stories, poems, analogies, metaphors
 
 **Evaluation Criteria** (GPT-4 rates each response 1-10):
+
 - **Correctness**: Factual accuracy, logic validity
 - **Completeness**: Addresses all aspects of query
 - **Clarity**: Clear explanation, well-structured
 - **Conciseness**: Efficient communication, no fluff
 
 **Scoring System**:
+
 ```python
 def calculate_score(local_ratings, gpt4_ratings):
     # For each example:
     #   Win: local_avg > gpt4_avg + 0.5
     #   Loss: local_avg < gpt4_avg - 0.5
     #   Tie: within 0.5 points
-    
+  
     win_rate = wins / total_examples
     loss_rate = losses / total_examples
     tie_rate = ties / total_examples
-    
+  
     overall_score = (wins + 0.5*ties) / total_examples * 100
     return overall_score  # Target: ≥90% to skip Phase 1C
 ```
 
 **Execution**:
+
 ```bash
 # Quick evaluation (50 samples/category, ~30-60 min, ~$5-10)
 bash scripts/run_phase1b_benchmark.sh YOUR_OPENAI_KEY
@@ -719,16 +758,19 @@ jupyter notebook notebooks/Phase1B_Benchmark.ipynb
 ```
 
 **Decision Tree**:
+
 - **Score ≥90%**: Skip Phase 1C, proceed to Phase 2 (Compression)
 - **Score 85-90%**: Optional Phase 1C with 10K targeted examples (~$500)
 - **Score <85%**: Required Phase 1C with 40K targeted examples (~$2000)
 
-**Output**: 
+**Output**:
+
 - JSON report: `phase1b_benchmark_results.json`
 - Identified weak categories for Phase 1C focus
 - Sample failures with GPT-4 feedback
 
 **Files**:
+
 - `scripts/automated_gpt4_benchmark.py`: Main evaluation script
 - `scripts/run_phase1b_benchmark.sh`: Quick runner
 - `notebooks/Phase1B_Benchmark.ipynb`: Interactive evaluation
@@ -743,28 +785,32 @@ jupyter notebook notebooks/Phase1B_Benchmark.ipynb
 **Decision:** Skip vocabulary trimming entirely
 
 **Why Vocabulary Trimming Breaks LLAMA:**
+
 1. **Embedding Layer Hardcoded**: 128,256 × 4096 = 525M parameters
+
    - Cannot change dimensions without retraining from scratch
    - Removing rows breaks positional relationships
    - Would require architectural surgery + months of pretraining
-
 2. **Tokenizer Mismatch**: Pretrained weights expect specific token IDs
+
    - ID 1234 = "example" in original, but different word in trimmed
    - Breaking this mapping destroys learned representations
-
 3. **Quality Catastrophe**: 47% UNK rate means:
-   - Nearly half of training data becomes <UNK> tokens
+
+   - Nearly half of training data becomes `<UNK>` tokens
    - Model learns to predict "unknown" instead of actual words
    - Unusable for real-world tasks
 
 **English Optimization Strategy (Alternative):**
 Instead of vocabulary trimming, optimize for English through:
+
 1. **Phase 1**: Train on 99.46% English data (natural focus)
 2. **Phase 2A**: Prune neurons with low activation on English (removes multilingual capacity)
 3. **Phase 2B**: Quantize remaining weights aggressively (English patterns compress better)
 4. **Result**: Effective "English specialization" without breaking architecture
 
 **Vocabulary Analysis Results (Archived for Reference):**
+
 - **50K Sample Analysis**: 11.67M tokens processed
 - **Unique Tokens Found**: 10,553 (8.2% of full vocabulary)
 - **Coverage**: Top 10K tokens = 100% of training data
@@ -774,9 +820,169 @@ Instead of vocabulary trimming, optimize for English through:
 
 #### Phase 1C: Advanced Training (Future Work)
 
+#### Phase 1C Alternative: Category-Specific Self-Consistency Distillation
+
+**Status**: IMPLEMENTED (October 2025)
+**Script**: `scripts/self_consistency_distillation.py`
+**Rationale**: Phase 1B benchmark showed 47% math performance. Root cause analysis revealed model CAN solve problems (diagnostic verified) but is inconsistent due to probabilistic sampling (temp=0.7, do_sample=True).
+
+**Key Insight - do_sample vs Temperature:**
+
+- **do_sample=True/False**: Primary control for randomness
+  - True: Probabilistic token selection from distribution
+  - False: Greedy decoding (always highest probability)
+- **temperature**: Only affects randomness LEVEL when do_sample=True
+  - High (0.7-1.0): More diverse outputs
+  - Low (0.1-0.3): More focused outputs
+  - Irrelevant when do_sample=False (always greedy)
+
+**Strategy: "Distill Determinism"**
+
+Generate training data with category-appropriate generation settings, then train model to be inherently consistent even at inference temp=0.7.
+
+**Category-Specific Approaches:**
+
+```python
+CATEGORY_SETTINGS = {
+    'math': {
+        'generate_temp': 0.0,      # Maximum determinism
+        'generate_sample': False,   # Greedy decoding
+        'train_temp': 0.0,         # Train for deterministic inference
+        'rationale': 'Math needs exact answers'
+    },
+    'code': {
+        'generate_temp': 0.0,
+        'generate_sample': False,
+        'train_temp': 0.0,
+        'rationale': 'Code must be correct'
+    },
+    'reasoning': {
+        'generate_temp': 0.1,
+        'generate_sample': True,
+        'train_temp': 0.0,
+        'rationale': 'Slight exploration, train deterministically'
+    },
+    'creativity': {
+        'generate_temp': 0.7,      # High diversity
+        'generate_sample': True,
+        'train_temp': 0.3,         # Train at LOWER temp
+        'rationale': 'Generate creative, train patterns consistently'
+    },
+    'knowledge': {
+        'generate_temp': 0.0,
+        'generate_sample': False,
+        'train_temp': 0.0,
+        'rationale': 'Factual precision'
+    },
+    'instruction': {
+        'generate_temp': 0.2,
+        'generate_sample': True,
+        'train_temp': 0.0,
+        'rationale': 'Precise with slight variation'
+    }
+}
+```
+
+**Filtering Strategy:**
+
+1. **Math/Code (Deterministic Categories)**:
+
+   - Generate once with greedy decoding
+   - Verify correctness if ground truth available
+   - Use all correct deterministic outputs
+2. **Creativity (Diverse Categories)**:
+
+   - Generate 10 samples with temp=0.7
+   - Keep up to 3 diverse high-quality outputs
+   - No single "correct" answer, preserve variety
+3. **Reasoning (Consensus Categories)**:
+
+   - Generate 10 samples with slight randomness
+   - Apply self-consistency: Keep only ≥60% agreement
+   - Use longest solution with majority answer
+
+**Implementation Details:**
+
+```python
+class CategorySpecificDistiller:
+    def self_consistency_filter(
+        self,
+        category: str,
+        problems: List[Dict],
+        n_samples: int = 10
+    ) -> List[Dict]:
+        """Generate training data with category-specific strategy."""
+      
+        settings = CATEGORY_SETTINGS[category]
+      
+        if not settings['generate_sample']:
+            # Deterministic: Generate once
+            solution = self.generate_solution(
+                prompt,
+                temperature=settings['generate_temp'],
+                do_sample=False
+            )
+            # Verify correctness, keep if correct
+      
+        else:
+            # Probabilistic: Generate multiple, filter
+            solutions = [
+                self.generate_solution(
+                    prompt,
+                    temperature=settings['generate_temp'],
+                    do_sample=True
+                )
+                for _ in range(n_samples)
+            ]
+          
+            if category == 'creativity':
+                # Keep diverse outputs
+                unique_solutions = filter_diverse(solutions)
+            else:
+                # Self-consistency voting
+                answers = [extract_answer(s) for s in solutions]
+                majority_answer = most_common(answers)
+                if agreement_rate >= 0.6:
+                    keep_best_solution(majority_answer)
+```
+
+**Expected Outcomes:**
+
+| Category  | Current | Post-Greedy | Post-SelfConsistency | Target  |
+| --------- | ------- | ----------- | -------------------- | ------- |
+| Math      | 47%     | 65-75%      | 70-80%               | 88-100% |
+| Code      | ?       | ?           | 75-85%               | 88-100% |
+| Reasoning | ?       | ?           | 72-82%               | 88-100% |
+| Overall   | ?       | 65-75%      | 75-85%               | 88-100% |
+
+**Cost Analysis:**
+
+- **Self-Consistency Only**: $50-100
+
+  - 500 math problems × 10 samples = 5K generations
+  - 164 code problems × 10 samples = 1.6K generations
+  - Total ~7K generations @ local inference (free)
+  - Training: $50-100 (GPU hours)
+- **Hybrid Approach**: $150-230
+
+  - Self-consistency first: $50-100
+  - GPT-5 targeted distillation on remaining gaps: $100-130
+  - Total: Cheaper than full GPT-5 ($280)
+
+**Next Steps:**
+
+1. Complete full Phase 1B benchmark (6 categories)
+2. Run self-consistency distillation on all categories
+3. Re-benchmark to measure improvement
+4. If still below 88-100% target, add GPT-5 distillation for remaining gaps
+5. Iterate until all categories meet target
+
+**Key Advantage:** "Bakes in" consistency through training data selection, not just inference parameters. Model learns to be deterministic even when generating with temp=0.7 at inference time.
+
 ### Phase 2: Extreme Compression (95% Reduction)
 
 **Step 1: Neural Magic Structured Pruning (10GB → 3.5GB)**
+
 - **Method**: 2:4 semi-structured sparsity
 - **Pattern**: In every 4 weights, exactly 2 are zero
 - **Hardware benefit**: NVIDIA sparse tensor cores give 1.8-2x speedup
@@ -789,6 +995,7 @@ Instead of vocabulary trimming, optimize for English through:
 - **Recovery fine-tuning**: 8 hours on 10K examples
 
 **Step 2: AWQ 4-bit Quantization (3.5GB → 900MB)**
+
 - **Method**: Activation-Aware Weight Quantization
 - **Calibration**: 2,048 diverse samples
 - **Strategy**: Mixed-precision by sensitivity
@@ -799,6 +1006,7 @@ Instead of vocabulary trimming, optimize for English through:
 - **Sparse-aware**: Only quantize non-zero weights
 
 **Step 3: GGUF Q5_K_M Export (900MB → 600MB)**
+
 - **Format**: Georgi Gerganov Universal Format
 - **Variant**: Q5_K_M (5-bit, medium K-means clustering)
 - **Optimizations**:
@@ -808,16 +1016,19 @@ Instead of vocabulary trimming, optimize for English through:
   - Streaming generation (token-by-token)
 
 **Step 4: Lossless Zstd Compression (600MB → 520MB)**
+
 - **Dictionary**: 128KB trained on weight samples
 - **Level**: 10 (high compression, fast decompression)
 - **Decompression**: 150-200ms on modern CPUs
 - **Verification**: SHA-256 checksum (bit-identical)
 
 **Enhancement Steps:**
+
 - **Recovery Fine-Tuning**: GPT-5 enhances 12K hardest examples → +1-2% quality
 - **Confidence Calibration**: Temperature + Platt scaling → 97% routing accuracy
 
 **Final Base Model:**
+
 - **Size**: 520MB
 - **Performance**: 89-91% GPT-4 baseline
 - **Quality loss from original**: 5-9% (minimal given 95% compression)
@@ -828,6 +1039,7 @@ Instead of vocabulary trimming, optimize for English through:
 **Architecture:** Independent LoRA adapters per domain
 
 **Training Process (per modifier):**
+
 1. Test base model on domain tasks (6K-12K examples)
 2. Identify failures (execution errors, quality <7/10)
 3. Embed + cluster failures into patterns (KMeans, k=8-10)
@@ -840,6 +1052,7 @@ Instead of vocabulary trimming, optimize for English through:
 7. Validate: Beat GPT-4 on domain benchmarks
 
 **Code Modifier Specification:**
+
 ```yaml
 base: compressed_520mb_model
 domain: code_generation_debugging
@@ -857,12 +1070,14 @@ compressed_size: 47MB
 ```
 
 **Reasoning Modifier:**
+
 - Training data: 12K examples
 - LoRA rank: 112
 - Compressed size: 48MB
 - Performance: 100-108% GPT-4 on MMLU
 
 **Automation Modifier:**
+
 - Training data: 8K examples
 - LoRA rank: 96
 - Compressed size: 40MB
@@ -871,15 +1086,16 @@ compressed_size: 47MB
 ### Phase 4: Router System
 
 **Confidence-Based Routing:**
+
 ```python
 def route_query(query, base_model, router, modifiers):
     # Step 1: Get base model response + confidence
     base_response, logits = base_model(query)
     confidence = compute_confidence(logits)
-    
+  
     # Step 2: Calibrate confidence
     calibrated_conf = calibrate(confidence)
-    
+  
     # Step 3: Routing decision
     if calibrated_conf > 0.80:
         return base_response  # Use base only (fast)
@@ -887,15 +1103,16 @@ def route_query(query, base_model, router, modifiers):
         # Step 4: Select modifier
         domain = classify_domain(query)
         modifier = modifiers[domain]
-        
+      
         # Step 5: Load modifier (30-50ms via memory-mapped file)
         enhanced_model = base_model + modifier
-        
+      
         # Step 6: Generate enhanced response
         return enhanced_model(query)
 ```
 
 **Router Architecture:**
+
 - **Type**: 3-layer feedforward neural network
 - **Input**: 128-dim features (query + base confidence + domain indicators)
 - **Hidden**: 64-dim → 32-dim
@@ -905,6 +1122,7 @@ def route_query(query, base_model, router, modifiers):
 - **Accuracy**: 97% on validation set
 
 **Escalation Detector:**
+
 - **Type**: BERT-base fine-tuned for dissatisfaction detection
 - **Training**: 6K labeled user feedback messages
 - **Patterns**: "that's wrong", "try again", "never mind", emotional markers
@@ -914,12 +1132,14 @@ def route_query(query, base_model, router, modifiers):
 ### Phase 5: Deployment
 
 **HuggingFace Spaces:**
+
 - **Instance**: T4 GPU @ $0.60/hr (auto-scaling)
 - **Idle cost**: $0 (spins down when unused)
 - **Cold start**: 30 seconds (loads base model)
 - **Concurrency**: 10-20 users per instance
 
 **Gradio Interface:**
+
 - Streaming chat (token-by-token)
 - Conversation history (multi-turn)
 - Routing transparency (shows when modifiers load)
@@ -927,6 +1147,7 @@ def route_query(query, base_model, router, modifiers):
 - Export conversations
 
 **HF Inference API:**
+
 - OpenAI-compatible REST API
 - Endpoints: `/v1/chat/completions`, `/v1/completions`
 - Auth: Bearer token
@@ -938,34 +1159,34 @@ def route_query(query, base_model, router, modifiers):
 
 ### Model Sizes
 
-| Component | Uncompressed | Compressed | Compression Ratio |
-|-----------|--------------|------------|-------------------|
-| LLAMA-3.2-8B Base | 16GB | 520MB | 96.8% |
-| Code Modifier | 260MB | 47MB | 81.9% |
-| Reasoning Modifier | 240MB | 48MB | 80.0% |
-| Automation Modifier | 210MB | 40MB | 81.0% |
-| Router | 13MB | 13MB | 0% (already small) |
-| Escalation Detector | 110MB | 3MB | 97.3% |
-| **Total MVP System** | **16.8GB** | **668MB** | **96.0%** |
+| Component                  | Uncompressed     | Compressed      | Compression Ratio  |
+| -------------------------- | ---------------- | --------------- | ------------------ |
+| LLAMA-3.2-8B Base          | 16GB             | 520MB           | 96.8%              |
+| Code Modifier              | 260MB            | 47MB            | 81.9%              |
+| Reasoning Modifier         | 240MB            | 48MB            | 80.0%              |
+| Automation Modifier        | 210MB            | 40MB            | 81.0%              |
+| Router                     | 13MB             | 13MB            | 0% (already small) |
+| Escalation Detector        | 110MB            | 3MB             | 97.3%              |
+| **Total MVP System** | **16.8GB** | **668MB** | **96.0%**    |
 
 ### Performance Metrics
 
-| Platform | Base Only | With Modifier | Memory Used |
-|----------|-----------|---------------|-------------|
-| M4 Pro Mac (48GB RAM) | 65 tps | 52 tps | 1.5GB → 2.0GB |
-| RTX 4090 (24GB VRAM) | 85 tps | 68 tps | 2.2GB → 2.7GB |
-| A100 40GB | 120 tps | 95 tps | 3.0GB → 3.5GB |
-| HF T4 GPU | 70 tps | 55 tps | 4.5GB → 5.0GB |
+| Platform              | Base Only | With Modifier | Memory Used    |
+| --------------------- | --------- | ------------- | -------------- |
+| M4 Pro Mac (48GB RAM) | 65 tps    | 52 tps        | 1.5GB → 2.0GB |
+| RTX 4090 (24GB VRAM)  | 85 tps    | 68 tps        | 2.2GB → 2.7GB |
+| A100 40GB             | 120 tps   | 95 tps        | 3.0GB → 3.5GB |
+| HF T4 GPU             | 70 tps    | 55 tps        | 4.5GB → 5.0GB |
 
 ### Quality Metrics
 
-| Benchmark | Base (520MB) | + Code Modifier | + Reasoning Modifier |
-|-----------|--------------|-----------------|----------------------|
-| **MMLU** | 65-68% | - | 70-75% |
-| **HumanEval** | 52-58% | 75-85% | - |
-| **GSM8K** | 60-66% | - | 68-74% |
-| **BBH** | 58-64% | - | 65-72% |
-| **MBPP** | 48-54% | 70-80% | - |
+| Benchmark           | Base (520MB) | + Code Modifier | + Reasoning Modifier |
+| ------------------- | ------------ | --------------- | -------------------- |
+| **MMLU**      | 65-68%       | -               | 70-75%               |
+| **HumanEval** | 52-58%       | 75-85%          | -                    |
+| **GSM8K**     | 60-66%       | -               | 68-74%               |
+| **BBH**       | 58-64%       | -               | 65-72%               |
+| **MBPP**      | 48-54%       | 70-80%          | -                    |
 
 **GPT-4 Baselines:** MMLU 80%, HumanEval 65%, GSM8K 75%, BBH 70%, MBPP 75%
 
@@ -1027,6 +1248,7 @@ echo "✅ Golden environment ready at /workspace/golden-venv"
 ```
 
 **Usage in Notebook**:
+
 ```python
 # Cell 1: Install dependencies
 !bash /data/Cogumi-LLM/golden_dynamic_setup_full.sh
@@ -1047,42 +1269,53 @@ print(f"Unsloth: OK")                         # 2025.10.8
 ```
 
 ### Additional Dependencies (Optional)
+
 ```
 
 ### Compression
 ```
+
 llm-compressor>=0.1.0  # Neural Magic
 onnx>=1.15.0
 onnxruntime>=1.16.0
+
 ```
 
 ### Export & Inference
 ```
+
 llama-cpp-python>=0.2.0  # GGUF
 ctranslate2>=4.0.0
+
 ```
 
 ### Data Processing
 ```
+
 datasets>=4.2.0
 datasketch>=1.6.0  # MinHash LSH
 sentence-transformers>=2.2.0  # Embeddings
 scikit-learn>=1.3.0  # KMeans
+
 ```
 
 ### API Clients
 ```
+
 groq>=0.32.0
 openai>=2.4.0
 together>=1.4.0
 anthropic>=0.18.0
+
 ```
 
 ### Deployment
 ```
+
 gradio>=4.0.0
 fastapi>=0.110.0
 uvicorn>=0.27.0
+
 ```
 
 ---
@@ -1090,6 +1323,7 @@ uvicorn>=0.27.0
 ## FILE STRUCTURE
 
 ```
+
 Cogumi-LLM/
 ├── data/
 │   ├── phase1/
@@ -1140,6 +1374,7 @@ Cogumi-LLM/
     ├── EXECUTION_PLAN.md                     # ✅ Step-by-step plan
     ├── technical_specification.md            # ✅ This document
     └── dev/                                  # Pipeline methodology docs
+
 ```
 
 ---
@@ -1180,11 +1415,12 @@ def create_shingles(text, k=3):
 ```
 
 **MinHash Signature:**
+
 ```python
 def minhash_signature(shingles, num_perm=128):
     """Create MinHash signature"""
     from datasketch import MinHash
-    
+  
     m = MinHash(num_perm=num_perm)
     for shingle in shingles:
         m.update(shingle.encode('utf8'))
@@ -1192,6 +1428,7 @@ def minhash_signature(shingles, num_perm=128):
 ```
 
 **LSH Bucketing:**
+
 ```python
 from datasketch import MinHashLSH
 
@@ -1213,6 +1450,7 @@ for ex_id in signatures:
 **Before Deduplication:** 750,000 examples
 
 **Duplicate Categories:**
+
 - Exact duplicates: 45,000 (6%)
 - Near-duplicates (Jaccard 0.8-0.95): 85,000 (11.3%)
 - Very similar (Jaccard 0.95-1.0): 20,000 (2.7%)
@@ -1220,6 +1458,7 @@ for ex_id in signatures:
 **After Deduplication:** 600,000 unique examples (20% reduction)
 
 **Quality Impact:**
+
 - Domain distribution maintained (±2%)
 - Difficulty distribution maintained (±1%)
 - Average quality increased: 7.9 → 8.2 (duplicates were often lower quality)
@@ -1229,6 +1468,7 @@ for ex_id in signatures:
 ## IMPLEMENTATION STATUS
 
 ### Phase 0: Dataset Curation ✅ COMPLETE
+
 - 640,637 curated examples (public_500k_filtered.jsonl)
 - 99.46% English purity
 - 0% duplicates (MinHash LSH deduplication)
@@ -1236,6 +1476,7 @@ for ex_id in signatures:
 - Domain balanced: code (30%), reasoning (25%), math (15%), science (10%), conversation (10%), creative (10%)
 
 ### Phase 1A: Base Training ⏳ IN PROGRESS
+
 - **Status**: Training running on Vast.ai H100 80GB
 - **Progress**: ~3 hours total, 100% GPU utilization
 - **Performance**: 5-12 it/s (variable by example length)
@@ -1251,6 +1492,7 @@ for ex_id in signatures:
   - 10 dataloader workers eliminates CPU bottleneck
 
 ### Phase 1B: Automated Benchmarking ✅ READY
+
 - **Status**: Implementation complete, awaiting Phase 1A completion
 - **Files Created**:
   - `scripts/automated_gpt4_benchmark.py` (460 lines)
@@ -1265,11 +1507,13 @@ for ex_id in signatures:
 - **Next Step**: Run after Phase 1A completes
 
 ### Phase 1C: Advanced Training (Optional)
+
 - **Status**: Planned, depends on Phase 1B results
 - **Trigger**: Phase 1B score <90%
 - **Approach**: GPT-5 targeted distillation on weak categories
 
 ### Phase 2: Compression 📋 PLANNED
+
 - **Target**: 16GB → 600MB (96% reduction)
 - **Methods**: Neural Magic 2:4 sparsity + AWQ 4-bit + GGUF + Zstd
 
@@ -1281,23 +1525,23 @@ for ex_id in signatures:
 
 **This specification reflects the ACTUAL implementation** as of the latest update. Key corrections from previous versions:
 
-❌ **REMOVED**: Axolotl framework (never used)  
+❌ **REMOVED**: Axolotl framework (never used)
 ✅ **ADDED**: HuggingFace Transformers + TRL + Unsloth (actual implementation)
 
-❌ **REMOVED**: A100 40GB references (wrong GPU)  
+❌ **REMOVED**: A100 40GB references (wrong GPU)
 ✅ **ADDED**: H100 80GB HBM3 with actual performance metrics
 
-❌ **REMOVED**: Theoretical 36-48 hour training time  
+❌ **REMOVED**: Theoretical 36-48 hour training time
 ✅ **ADDED**: Actual 3-hour training time with optimizations
 
-❌ **REMOVED**: Generic YAML configuration approach  
+❌ **REMOVED**: Generic YAML configuration approach
 ✅ **ADDED**: Notebook-based workflow with Python training script
 
-❌ **REMOVED**: Unverified dependency versions  
+❌ **REMOVED**: Unverified dependency versions
 ✅ **ADDED**: Golden dependency set (tested on Vast.ai H100)
 
 ---
 
-**Last Updated:** January 2025  
-**Next Update:** After Phase 1B completion  
+**Last Updated:** January 2025
+**Next Update:** After Phase 1B completion
 **Version:** 3.0 (Production Implementation - HuggingFace/Unsloth)
