@@ -156,20 +156,25 @@ def test_generation(tokenizer, model, test_cases):
         print(f"🔢 Output tokens: {outputs.shape[1]}")
         print(f"🔢 Generated tokens: {outputs.shape[1] - inputs['input_ids'].shape[1]}")
         
-        # Decode with special tokens
+        # Decode with special tokens first
         full_response = tokenizer.decode(outputs[0], skip_special_tokens=False)
         print(f"\n📤 FULL OUTPUT (with special tokens):")
         print(full_response[:500] + ("..." if len(full_response) > 500 else ""))
         
-        # Decode without special tokens
-        response_clean = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
-        # Extract assistant response
-        if "<|start_header_id|>assistant<|end_header_id|>" in response_clean:
-            extracted = response_clean.split("<|start_header_id|>assistant<|end_header_id|>")[-1].strip()
+        # Extract assistant response using special token marker
+        if "<|start_header_id|>assistant<|end_header_id|>" in full_response:
+            assistant_part = full_response.split("<|start_header_id|>assistant<|end_header_id|>")[-1]
+            # Remove the end-of-text token if present
+            if "<|eot_id|>" in assistant_part:
+                assistant_part = assistant_part.split("<|eot_id|>")[0]
+            extracted = assistant_part.strip()
         else:
-            # Fallback: remove input prompt
-            extracted = response_clean[len(prompt):].strip()
+            # Fallback: decode without special tokens and remove prompt
+            response_clean = tokenizer.decode(outputs[0], skip_special_tokens=True)
+            if response_clean.startswith(prompt):
+                extracted = response_clean[len(prompt):].strip()
+            else:
+                extracted = response_clean.strip()
         
         print(f"\n📤 EXTRACTED RESPONSE:")
         print(extracted)

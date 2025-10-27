@@ -127,13 +127,23 @@ class BenchmarkSuite:
                 pad_token_id=self.tokenizer.eos_token_id
             )
         
-        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        # Extract only the assistant's response
-        if "<|start_header_id|>assistant<|end_header_id|>" in response:
-            response = response.split("<|start_header_id|>assistant<|end_header_id|>")[-1].strip()
+        # First decode WITH special tokens to find the assistant response
+        response_with_tokens = self.tokenizer.decode(outputs[0], skip_special_tokens=False)
+        
+        # Extract only the assistant's response using the special token marker
+        if "<|start_header_id|>assistant<|end_header_id|>" in response_with_tokens:
+            # Split on the assistant header and take everything after it
+            assistant_part = response_with_tokens.split("<|start_header_id|>assistant<|end_header_id|>")[-1]
+            # Remove the end-of-text token if present
+            if "<|eot_id|>" in assistant_part:
+                assistant_part = assistant_part.split("<|eot_id|>")[0]
+            response = assistant_part.strip()
         else:
-            # Fallback: remove input prompt
-            response = response[len(formatted_prompt):].strip()
+            # Fallback: decode without special tokens and remove the formatted prompt
+            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            if response.startswith(prompt):
+                response = response[len(prompt):].strip()
+        
         return response
     
     def generate_gpt4(self, prompt: str, max_tokens: int = 512) -> str:
