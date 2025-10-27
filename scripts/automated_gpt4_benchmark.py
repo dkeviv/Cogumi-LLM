@@ -24,6 +24,7 @@ from tqdm import tqdm
 from openai import OpenAI
 import numpy as np
 from collections import defaultdict
+from peft import PeftModel, PeftConfig
 
 
 class BenchmarkSuite:
@@ -46,13 +47,39 @@ class BenchmarkSuite:
         # Load local model
         print("📥 Loading local model...")
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            torch_dtype=torch.float16,
-            device_map=device,
-            load_in_4bit=True
-        )
-        print("✅ Local model loaded")
+        
+        # Check if this is a LoRA adapter or full model
+        adapter_config_path = Path(model_path) / "adapter_config.json"
+        
+        if adapter_config_path.exists():
+            print("🔧 Detected LoRA adapter - loading base model + adapter...")
+            # Load the adapter config to get base model name
+            peft_config = PeftConfig.from_pretrained(model_path)
+            base_model_name = peft_config.base_model_name_or_path
+            
+            print(f"📥 Loading base model: {base_model_name}")
+            # Load base model
+            base_model = AutoModelForCausalLM.from_pretrained(
+                base_model_name,
+                torch_dtype=torch.float16,
+                device_map=device,
+                load_in_4bit=True
+            )
+            
+            print(f"🔧 Applying LoRA adapter from: {model_path}")
+            # Load and apply adapter
+            self.model = PeftModel.from_pretrained(base_model, model_path)
+            print("✅ Base model + LoRA adapter loaded successfully!")
+        else:
+            print("📥 Loading full model...")
+            # Load as regular model
+            self.model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                torch_dtype=torch.float16,
+                device_map=device,
+                load_in_4bit=True
+            )
+            print("✅ Full model loaded")
         
         # Benchmark categories
         self.categories = {
