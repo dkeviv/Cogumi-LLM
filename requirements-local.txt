@@ -1,0 +1,29 @@
+# Cogumi-LLM - Local Development Requirements (Mac)
+# For code editing, data processing, and API clients only
+# NO training libraries (training happens on Vast.ai H100)
+
+# API Clients for teacher models
+groq>=0.32.0
+openai>=2.4.0
+together>=1.4.0
+anthropic>=0.18.0
+
+# Data processing
+datasets>=4.2.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Utilities
+tqdm>=4.65.0
+requests>=2.31.0
+rich>=13.0.0
+
+# Development tools
+jupyter>=1.0.0
+jupyterlab>=4.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Code quality
+black>=23.0.0
+ruff>=0.1.0
