@@ -78,13 +78,14 @@ pip install --upgrade pip setuptools wheel
 # 3. Install PyTorch FIRST (required by Flash Attention) - CUDA 12.4
 # CLEAN INSTALL: Uninstall any existing PyTorch first
 pip uninstall torch torchvision torchaudio -y
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
+    --index-url https://download.pytorch.org/whl/cu124
 
 # 4. Install psutil (required by Flash Attention's setup.py)
 pip install psutil==5.9.8
 
-# 5. Install Flash Attention with --no-build-isolation (CRITICAL FLAG!)
-pip install flash-attn --no-build-isolation
+# 5. Install Flash Attention 2.8.2 (pre-built for torch 2.6.0 + CUDA 12.4)
+pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v2.8.2/flash_attn-2.8.2+cu124torch2.6-cp310-cp310-linux_x86_64.whl
 
 # 6. Install all other dependencies
 pip install -r requirements-stable-precompiled.txt --upgrade-strategy only-if-needed
@@ -97,13 +98,15 @@ python scripts/verify_environment.py
 **Why --upgrade-strategy only-if-needed?** Prevents pip from reinstalling PyTorch when installing xformers, which depends on specific torch versions.
 
 **Installed Versions (CUDA 12.4)**:
-- PyTorch: 2.6.0+cu124 (latest stable for CUDA 12.4)
+- PyTorch: 2.6.0+cu124 (pinned)
 - xformers: 0.0.28.post2 (pinned for torch 2.6.0 compatibility)
-- Flash Attention: Latest compatible (2.x)
+- Flash Attention: 2.8.2 (pre-built for torch 2.6.0 + CUDA 12.4)
 - Transformers: 4.43.3
 - Unsloth: July-2024
 
-**CRITICAL**: xformers version must match PyTorch version. Using xformers 0.0.32+ with torch 2.6.0 causes conflicts.
+**CRITICAL**: All versions are pinned to ensure compatibility:
+- torch 2.6.0 → xformers 0.0.28.post2 → flash-attn 2.8.2
+- Using newer versions (torch 2.8.0, xformers 0.0.32+) causes conflicts
 
 **Why --no-build-isolation?** Flash Attention's setup.py imports both torch AND psutil. pip's default build isolation prevents access to installed packages. The --no-build-isolation flag disables this, allowing Flash Attention to import dependencies during build.
 

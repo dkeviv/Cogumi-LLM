@@ -179,17 +179,18 @@ pip list | grep -E "torch|xformers|transformers"
 # Should show nothing
 ```
 
-**Stage 1: Install PyTorch first (required by Flash Attention)**
+**Stage 1: Install PyTorch 2.6.0 (required by Flash Attention)**
 ```bash
 # CLEAN INSTALL: First uninstall any existing PyTorch packages
 pip uninstall torch torchvision torchaudio -y
 
-# Install latest PyTorch with CUDA 12.4 support (for H100)
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+# Install PyTorch 2.6.0 with CUDA 12.4 support (PINNED VERSION)
+pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
+    --index-url https://download.pytorch.org/whl/cu124
 
 # Verify PyTorch installed and importable
 python -c "import torch; print(f'✅ PyTorch {torch.__version__} installed')"
-# Expected: ✅ PyTorch 2.6.0+cu124 installed (or latest for CUDA 12.4)
+# Expected: ✅ PyTorch 2.6.0+cu124 installed
 ```
 
 **Stage 2: Install psutil (required by Flash Attention's setup.py)**
@@ -202,16 +203,14 @@ python -c "import psutil; print('✅ psutil installed')"
 # Expected: ✅ psutil installed
 ```
 
-**Stage 3: Install Flash Attention with --no-build-isolation**
+**Stage 3: Install Flash Attention 2.8.2 (compatible with torch 2.6.0)**
 ```bash
-# CRITICAL: Use --no-build-isolation flag
-# This allows Flash Attention's setup.py to import torch and psutil
-# Will use pre-compiled wheel for CUDA 12.4
-pip install flash-attn --no-build-isolation
+# Install Flash Attention 2.8.2 pre-built wheel for torch 2.6.0 + CUDA 12.4
+pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v2.8.2/flash_attn-2.8.2+cu124torch2.6-cp310-cp310-linux_x86_64.whl
 
 # Verify Flash Attention installed
-python -c "import flash_attn; print('✅ Flash Attention installed')"
-# Expected: ✅ Flash Attention installed
+python -c "import flash_attn; print('✅ Flash Attention 2.8.2 installed')"
+# Expected: ✅ Flash Attention 2.8.2 installed
 ```
 
 **Stage 4: Install everything else**
