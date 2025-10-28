@@ -98,10 +98,12 @@ python scripts/verify_environment.py
 
 **Installed Versions (CUDA 12.4)**:
 - PyTorch: 2.6.0+cu124 (latest stable for CUDA 12.4)
-- xformers: Auto-matched to PyTorch version
+- xformers: 0.0.28.post2 (pinned for torch 2.6.0 compatibility)
 - Flash Attention: Latest compatible (2.x)
 - Transformers: 4.43.3
 - Unsloth: July-2024
+
+**CRITICAL**: xformers version must match PyTorch version. Using xformers 0.0.32+ with torch 2.6.0 causes conflicts.
 
 **Why --no-build-isolation?** Flash Attention's setup.py imports both torch AND psutil. pip's default build isolation prevents access to installed packages. The --no-build-isolation flag disables this, allowing Flash Attention to import dependencies during build.
 

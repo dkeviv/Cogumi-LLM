@@ -222,7 +222,7 @@ pip install -r requirements-stable-precompiled.txt --upgrade-strategy only-if-ne
 
 # This will install:
 # - Transformers 4.43.3 (10 sec)
-# - xformers (auto-matched to PyTorch version) (20 sec)
+# - xformers 0.0.28.post2 (pinned for torch 2.6.0) (20 sec)
 # - Unsloth July-2024 (30 sec)
 # - NumPy 1.26.4 (5 sec)
 # - All other dependencies (2-3 min)
