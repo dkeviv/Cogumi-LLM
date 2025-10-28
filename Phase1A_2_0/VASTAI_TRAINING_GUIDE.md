@@ -196,7 +196,7 @@ python -c "import torch; print(f'✅ PyTorch {torch.__version__} installed')"
 **Stage 2: Install psutil (required by Flash Attention's setup.py)**
 ```bash
 # Flash Attention's setup.py imports psutil during build
-pip install psutil==5.9.8
+pip install psutil==7.1.2
 
 # Verify psutil installed
 python -c "import psutil; print('✅ psutil installed')"
@@ -206,7 +206,7 @@ python -c "import psutil; print('✅ psutil installed')"
 **Stage 3: Install Flash Attention 2.8.2 (compatible with torch 2.6.0)**
 ```bash
 # Install Flash Attention 2.8.2 pre-built wheel for torch 2.6.0 + CUDA 12.4
-pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v2.8.2/flash_attn-2.8.2+cu124torch2.6-cp310-cp310-linux_x86_64.whl
+pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v2.8.2/flash_attn-2.8.2+cu124torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
 
 # Verify Flash Attention installed
 python -c "import flash_attn; print('✅ Flash Attention 2.8.2 installed')"

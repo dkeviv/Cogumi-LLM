@@ -82,10 +82,10 @@ pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
     --index-url https://download.pytorch.org/whl/cu124
 
 # 4. Install psutil (required by Flash Attention's setup.py)
-pip install psutil==5.9.8
+pip install psutil==7.1.2
 
 # 5. Install Flash Attention 2.8.2 (pre-built for torch 2.6.0 + CUDA 12.4)
-pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v2.8.2/flash_attn-2.8.2+cu124torch2.6-cp310-cp310-linux_x86_64.whl
+pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v2.8.2/flash_attn-2.8.2+cu124torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
 
 # 6. Install all other dependencies
 pip install -r requirements-stable-precompiled.txt --upgrade-strategy only-if-needed
