@@ -1,6 +1,30 @@
 #!/usr/bin/env python3
 """
-Optimized QLoRA Training Script for LLAMA-3.1-8B
+Phase 1A: Base QLoRA Training Script for LLAMA-3.1-8B
+
+PURPOSE:
+    Initial training on 600K curated examples from Phase 0 dataset.
+    Creates the foundation model before targeted improvements (Phase 1B).
+    Uses QLoRA 4-bit quantization for memory-efficient training.
+
+WHEN TO USE:
+    - Phase 1A only (initial base model training)
+    - Training dataset: data/phase1/public_500k_filtered.jsonl (600K examples)
+    - After Phase 0 dataset curation is complete
+    - One-time initial training (not for iterative improvements)
+
+TRAINING TIME:
+    - ~90 hours (3.75 days) on A100 40GB
+    - 3 epochs, ~28K steps
+    - Cost: ~$220 (120 GPU-hours @ $1.89/hr)
+
+OUTPUT:
+    - 10GB merged model at checkpoints/final/
+    - LoRA adapter + merged weights
+    - Expected performance: 75-82% GPT-4 baseline
+
+PIPELINE STAGE: Phase 1A - Base model training
+
 Optimizations:
 - Disabled gradient_checkpointing (faster on A100 40GB)
 - Increased dataloader_num_workers to 8 (more parallel data loading)
@@ -10,7 +34,6 @@ Optimizations:
 - Added ddp_find_unused_parameters=False (minor speedup)
 
 Expected speedup: 8.86s/step → 5-6s/step (40-45% faster)
-Expected completion: ~90 hours (3.75 days) vs 148 hours (6 days)
 """
 
 import torch

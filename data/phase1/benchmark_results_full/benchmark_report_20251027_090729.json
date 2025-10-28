@@ -1,0 +1,64 @@
+{
+  "timestamp": "2025-10-27T09:07:29.761210",
+  "model_path": "/workspace/data/Cogumi-LLM/checkpoints/final",
+  "elapsed_time_minutes": 107.07640475829443,
+  "overall": {
+    "total_tests": 255,
+    "wins": 150,
+    "losses": 48,
+    "ties": 57,
+    "win_rate": 0.5882352941176471,
+    "score_vs_gpt4": 70.0,
+    "performance_rating": "\u26a0\ufe0f NEEDS IMPROVEMENT (<80% of GPT-4)"
+  },
+  "by_category": {
+    "math": {
+      "wins": 3,
+      "losses": 12,
+      "ties": 35,
+      "win_rate": 6.0,
+      "score": 41.0,
+      "description": "Mathematical reasoning and calculations"
+    },
+    "code": {
+      "wins": 24,
+      "losses": 16,
+      "ties": 10,
+      "win_rate": 48.0,
+      "score": 57.99999999999999,
+      "description": "Code generation and debugging"
+    },
+    "reasoning": {
+      "wins": 43,
+      "losses": 7,
+      "ties": 0,
+      "win_rate": 86.0,
+      "score": 86.0,
+      "description": "Logical reasoning and problem solving"
+    },
+    "knowledge": {
+      "wins": 45,
+      "losses": 5,
+      "ties": 0,
+      "win_rate": 90.0,
+      "score": 90.0,
+      "description": "Factual knowledge and comprehension"
+    },
+    "instruction": {
+      "wins": 33,
+      "losses": 7,
+      "ties": 10,
+      "win_rate": 66.0,
+      "score": 76.0,
+      "description": "Instruction following"
+    },
+    "creativity": {
+      "wins": 2,
+      "losses": 1,
+      "ties": 2,
+      "win_rate": 40.0,
+      "score": 60.0,
+      "description": "Creative writing and generation"
+    }
+  }
+}

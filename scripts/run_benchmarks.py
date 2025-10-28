@@ -1,7 +1,26 @@
 #!/usr/bin/env python3
 """
-Run standard benchmarks on trained model to validate quality.
-Supports MMLU, HumanEval, and GSM8K benchmarks.
+Standard Accuracy Benchmarks (MMLU, GSM8K, HumanEval)
+
+PURPOSE:
+    Measures raw accuracy on standard benchmarks against ground truth answers.
+    Compares model performance to GPT-4 baseline percentages.
+    Used for initial model validation and quality checks.
+
+WHEN TO USE:
+    - Phase 1A initial validation (after base QLoRA training)
+    - Quick quality checks during development
+    - When you need accuracy metrics (not win/loss comparisons)
+    - Does NOT require OpenAI API key
+
+OUTPUT:
+    - benchmark_results.json: Accuracy percentages and vs GPT-4 comparison
+    - Format: {benchmark: "MMLU", accuracy: 0.78, vs_gpt4: "97.5%"}
+
+PIPELINE STAGE: Phase 1A - Initial validation after base training
+
+NOTE: For Phase 1B (targeted improvements), use automated_gpt4_benchmark.py instead
+      which provides win/loss/tie comparisons with GPT-4 as judge.
 """
 
 import argparse

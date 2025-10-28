@@ -358,13 +358,18 @@ def main():
     MODEL_PATH = "/workspace/data/Cogumi-LLM/checkpoints/final"
     OUTPUT_DIR = "/workspace/data/Cogumi-LLM/self_distillation"
     
-    # Categories to process
+    # Categories to process - MINIMAL TEST SET for Phase 1B.1
+    # After validation, expand in Phase 1B.2
     CATEGORIES = [
-        ('math', 500),      # 500 math problems
-        ('code', 164),      # All HumanEval problems
+        ('math', 100),      # 100 math problems (was 500) - quick proof of concept
+        ('code', 50),       # 50 code problems (was 164) - representative sample
         # ('reasoning', 200),
         # ('creativity', 100),
     ]
+    
+    # EXPANSION PLAN (if Phase 1B.1 succeeds):
+    # Phase 1B.2: Use identify_failures.py to find ~2,500 actual failure cases
+    # Expected total: 150 (Phase 1B.1) + 2,500 (Phase 1B.2) = 2,650 examples
     
     print("="*80)
     print("CATEGORY-SPECIFIC SELF-CONSISTENCY DISTILLATION")

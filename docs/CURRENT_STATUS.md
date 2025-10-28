@@ -8,15 +8,47 @@
 
 **Student Model:** LLAMA-3.2-8B (upgraded from Qwen-7B for +14% more parameters)  **For Task Tracking:** See `IMPLEMENTATION_CHECKLIST.md`
 
-**Last Updated:** October 21, 2025
+**Last Updated:** October 27, 2025
 
 ---
 
-## 📋 CURRENT STATUS (October 21, 2025)
+## 📋 CURRENT STATUS (October 27, 2025)
 
-### � PHASE 1A: IN PROGRESS (Parallel Training Strategy)
+### 🔄 PHASE 1B: SELF-CONSISTENCY TRAINING (Ready to Execute)
 
-**Strategy:** Running **TWO INDEPENDENT** training runs for risk mitigation
+**Strategy:** Fix 10% consistency problem causing 70% ties in benchmarks
+
+#### Phase 1A Results (COMPLETE ✅)
+- **Trained Model:** `/workspace/data/Cogumi-LLM/checkpoints/final`
+- **Benchmarks:**
+  - MATH (GSM8K): 41% correct, **70% ties** ❌
+  - CODE (HumanEval): 58% correct, **28% ties** ⚠️
+  - REASONING (MMLU): 86% correct ✅
+- **Root Cause Diagnosed:** 10% consistency (model generates completely different outputs every run)
+- **Impact:** High tie rates prevent accurate scoring, model is too random/non-deterministic
+
+#### Phase 1B Execution Plan (IN PROGRESS 🔄)
+- **Goal:** Improve 10% → 60-80% consistency through self-consistent training data
+- **Method:** Category-specific temperature strategies
+  - MATH/CODE: Generate at temp=0.0 (deterministic)
+  - CREATIVITY: Generate at temp=0.7 → train at temp=0.3
+- **Steps:**
+  1. Generate 664 self-consistent examples (500 MATH + 164 CODE)
+  2. Train 2 epochs with lr=5e-6 on consistent data
+  3. Re-benchmark to measure improvement
+- **Expected Results:**
+  - Consistency: 10% → 60-80%
+  - MATH: 41% → 65-75%, ties 70% → <30%
+  - CODE: 58% → 70-80%, ties 28% → <20%
+- **Time:** 5-7 hours total
+- **Cost:** $12-17
+- **Scripts:** 
+  - `scripts/run_phase1b_self_consistency.sh` (one-command execution)
+  - `scripts/self_consistency_distillation.py` (data generation)
+- **Documentation:** 
+  - `PHASE1B_SELF_CONSISTENCY_PLAN.md` (full plan)
+  - `PHASE1B_QUICKSTART.md` (quick reference)
+
 
 #### Training Run 1: Colab (Primary)
 - **Platform:** Google Colab Pro+ A100 40GB
@@ -1014,6 +1046,9 @@ IF MODEL DOESN'T WORK:
 ---
 
 ## 📝 CHANGELOG
+
+### January 16, 2025 - Phase 1B Validation Cost Optimization
+**User Insight:** "Shouldn't we already have the GPT-4 response from the original benchmark... why are we doing it again with API?" **Problem Identified:** Original validation plan regenerated GPT-4 responses for same 100 prompts already tested in Phase 1A (100 GPT-4 generations @ $0.0075 each = $0.75 wasted). **Solution Implemented:** Created `validate_phase1b1_optimized.py` that loads Phase 1A's saved GPT-4 responses from `{category}_intermediate.json` files and reuses them for judging Phase 1B.1. Only judges Phase 1B.1 vs Phase 1A's saved GPT-4 baseline (100 judging calls instead of 200 total calls). **Impact:** 50% cost savings ($1.50 → $0.75 per validation), 50% time savings (30-40 min → 15-20 min), zero quality loss (same prompts, same GPT-4 baseline, deterministic at temp=0.0). **Scripts:** `validate_phase1b1.sh` now calls optimized approach (default), `validate_phase1b1_expensive.sh` keeps original for reference. **Documentation:** Created `PHASE1B_VALIDATION_OPTIMIZATION.md` explaining reuse strategy, cost breakdown, usage instructions. **Principle:** "If you already have the answer, don't ask again" - Phase 1A benchmarking saved both model and GPT-4 responses, Phase 1B validation uses same prompts for fair comparison, therefore reuse saved GPT-4 instead of regenerating. **Benefit for Iteration:** Cheaper validation ($0.75 vs $1.50) enables more experimentation - if Phase 1B.1 needs 3 iterations, saves $2.25 total.
 
 ### October 17, 2025 - Parallel Deduplication & Script Management
 **Parallelization:** Implemented multiprocessing-based deduplication using 10 CPU cores. **Performance:** Benchmark on 10K samples: sequential 50s (200 samples/sec) vs parallel 8.1s (1,237 samples/sec) = 6.2x speedup. **Estimated full runtime:** 674K samples in 9.1 minutes vs 56 minutes sequential (6.2x faster) vs 6-8 hours original MD5 (40-53x faster overall). **Script Management:** Established legacy script archiving protocol - deprecated scripts moved to `src/utils/archive/` with clear headers indicating replacement. **Output Cleanup:** Added mandatory cleanup of old outputs before new runs to avoid confusion. **Instructions Updated:** Added script/output management best practices to copilot instructions for all file types.

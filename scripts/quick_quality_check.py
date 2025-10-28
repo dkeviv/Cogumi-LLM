@@ -1,7 +1,27 @@
 #!/usr/bin/env python3
 """
-Quick quality check for Phase 1A trained model.
-Tests model on 20 sample tasks across different domains.
+Quick Quality Check for Trained Models
+
+PURPOSE:
+    Rapid sanity check for trained models. Tests on 20 diverse sample tasks
+    to verify model produces reasonable outputs without running full benchmarks.
+
+WHEN TO USE:
+    - After Phase 1A training completes (quick validation)
+    - After Phase 1B training (verify model still works)
+    - During development to spot-check changes
+    - Before running expensive full benchmarks
+    
+OUTPUT:
+    - Console output with sample responses
+    - Pass/fail indicators for basic quality
+    
+PIPELINE STAGE: Development utility - quick validation
+
+TIME: ~5 minutes (20 examples)
+
+NOTE: This is NOT a substitute for proper benchmarking (automated_gpt4_benchmark.py
+      or run_benchmarks.py). Use for quick checks only.
 """
 
 import torch

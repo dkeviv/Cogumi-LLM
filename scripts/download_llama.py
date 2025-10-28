@@ -1,8 +1,23 @@
+#!/usr/bin/env python3
 """
-Download Qwen 2.5 7B base model from HuggingFace.
+Download LLAMA-3.2-8B Base Model
 
-This script downloads the model and tokenizer to the local cache.
-The model will be available for training without re-downloading.
+PURPOSE:
+    Downloads LLAMA-3.2-8B model and tokenizer from HuggingFace to local cache.
+    Ensures model is available offline for training without re-downloading.
+
+WHEN TO USE:
+    - Before starting Phase 1A training on new machine
+    - To pre-cache model for offline training environments
+    - After fresh environment setup
+
+OUTPUT:
+    - Model cached in: ~/.cache/huggingface/hub/
+    - ~16GB download (FP16 weights)
+
+PIPELINE STAGE: Setup utility - run once per machine
+
+NOTE: Requires HuggingFace token for gated models (LLAMA requires acceptance of license)
 """
 
 import os

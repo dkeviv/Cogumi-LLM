@@ -1,7 +1,23 @@
 #!/usr/bin/env python3
 """
-Automated Benchmarking Against GPT-4 Baseline
-Compares trained model performance against ChatGPT (GPT-4) on diverse tasks.
+Automated GPT-4 Comparison Benchmark Script
+
+PURPOSE:
+    Compares trained model against GPT-4 using GPT-4 as judge. Measures wins/losses/ties
+    across different task categories (math, code, reasoning, etc.). Used for Phase 1B
+    validation to assess model consistency improvements.
+
+WHEN TO USE:
+    - Phase 1B.1 Validation: Compare Phase 1B.1 vs Phase 1A baseline
+    - Phase 1B.2 Validation: Compare Phase 1B.2 vs Phase 1B.1
+    - Any time you need GPT-4 comparison (not raw accuracy benchmarks)
+    - Requires OpenAI API key for GPT-4 calls
+
+OUTPUT:
+    - {category}_intermediate.json: Detailed results with wins/losses/ties per problem
+    - benchmark_report_*.json: Summary with overall performance vs GPT-4
+
+PIPELINE STAGE: Phase 1B - Validation step after targeted training
 
 Usage:
     python automated_gpt4_benchmark.py \

@@ -58,6 +58,241 @@ Cogumi-LLM is a 668MB AI model system that beats GPT-4 on code, reasoning, and a
 
 ---
 
+---
+
+## PIPELINE FILE REFERENCE
+
+This section maps each pipeline stage to the specific files that implement it. Use this as a quick reference for "which file should I use for X?"
+
+### Phase 0: Dataset Curation (COMPLETED ✅)
+
+**Main Dataset File:**
+- `data/phase1/public_500k_filtered.jsonl` - 600K curated examples (640K before dedup)
+  - Multi-teacher distillation (Llama-405B, GPT-4o, Qwen-Coder-480B)
+  - Quality filtered (GPT-4-mini, >7/10 threshold)
+  - MinHash LSH deduplicated (Jaccard 0.8, removed 150K duplicates)
+
+**Tools Used (Historical):**
+- `src/phase0_dataset/curate_public_datasets.py` - Dataset collection and curation
+- `src/utils/deduplication_parallel.py` - MinHash LSH deduplication (xxhash)
+- Status: Phase 0 complete, no further action needed
+
+---
+
+### Phase 1A: Base Model Training
+
+**Training Script:**
+- `train_qlora_optimized.py` - **USE THIS for Phase 1A initial training**
+  - Input: `data/phase1/public_500k_filtered.jsonl` (600K examples)
+  - Output: `checkpoints/final/` (10GB model)
+  - Time: ~90 hours (3.75 days) on A100 40GB
+  - Cost: ~$220
+  - Method: QLoRA 4-bit, rank 64, 3 epochs
+  - When: One-time initial training only
+
+**Validation Scripts:**
+- `scripts/run_benchmarks.py` - **Standard accuracy benchmarks**
+  - Measures: MMLU, GSM8K, HumanEval accuracy vs ground truth
+  - No API key needed
+  - Output: `benchmark_results.json` with accuracy percentages
+  - When: Quick quality checks, Phase 1A initial validation
+
+**DO NOT USE for Phase 1A:**
+- ❌ `train_phase1b_benchmark.py` - This is for Phase 1B targeted training only
+
+---
+
+### Phase 1B: Benchmark Comparison & Failure Analysis
+
+**Phase 1B.1: Initial Benchmarking**
+
+**Benchmark Script:**
+- `scripts/automated_gpt4_benchmark.py` - **GPT-4 comparison benchmarks**
+  - Compares model vs GPT-4, uses GPT-4 as judge
+  - Requires: OpenAI API key
+  - Output: `checkpoints/benchmark_results_full/{category}_intermediate.json`
+  - Contains: wins, losses, ties for each category (math, code, etc.)
+  - When: After Phase 1A training to identify weaknesses
+  - Method: Generate responses from both models, GPT-4 judges winner
+
+**Execution:**
+```bash
+python scripts/automated_gpt4_benchmark.py \
+    --model_path checkpoints/final \
+    --openai_key $OPENAI_API_KEY \
+    --output_dir checkpoints/benchmark_results_full \
+    --categories math code \
+    --num_samples 50
+```
+
+---
+
+### Phase 1B.2: Extract Failures for Training
+
+**Failure Extraction Script:**
+- `scripts/extract_failures_from_benchmark.py` - **Extract training data from benchmark results**
+  - Input: `checkpoints/benchmark_results_full/*_intermediate.json`
+  - Output: `data/training_from_benchmark/*.jsonl` (73 examples for Phase 1B.1)
+  - Extracts: Ties and losses (failures) from benchmarks
+  - Format: `{"instruction": prompt, "output": GPT-4's correct answer}`
+  - When: After Phase 1A benchmarks, before Phase 1B training
+  - Time: <1 second (just JSON parsing)
+
+**Execution:**
+```bash
+python scripts/extract_failures_from_benchmark.py
+# Auto-detects environment (Local vs Vast.ai)
+# Creates: data/training_from_benchmark/math_failures_from_benchmark.jsonl
+#          data/training_from_benchmark/code_failures_from_benchmark.jsonl
+```
+
+---
+
+### Phase 1B.3: Targeted Training on Failures
+
+**Training Script:**
+- `train_phase1b_benchmark.py` - **USE THIS for Phase 1B targeted training**
+  - Input: `data/training_from_benchmark/*.jsonl` (73-2,000+ examples)
+  - Output: `checkpoints/phase1b_from_benchmark/` (LoRA adapter)
+  - Time: 15-20 min (73 examples), 11-16 hours (2,000 examples)
+  - Cost: ~$0.50-1 (73), ~$22-30 (2,000)
+  - Method: QLoRA 4-bit, rank 64, learning rate 5e-6 (lower to prevent forgetting)
+  - When: Phase 1B.1 (73 examples) or Phase 1B.2 (2,000+ examples)
+
+**One-Command Execution:**
+- `scripts/run_phase1b_benchmark_training.sh` - **Automates full Phase 1B.1 workflow**
+  - Runs: extract_failures_from_benchmark.py → train_phase1b_benchmark.py
+  - Verifies: Data quality, model loading
+  - When: Phase 1B.1 complete automation
+  - Time: ~20 minutes total
+
+**Execution:**
+```bash
+# On Vast.ai H100
+cd /workspace/data/Cogumi-LLM
+bash scripts/run_phase1b_benchmark_training.sh
+```
+
+**DO NOT USE for Phase 1B:**
+- ❌ `train_qlora_optimized.py` - This is for Phase 1A full training only
+- ❌ `scripts/run_benchmarks.py` - This measures accuracy, not GPT-4 comparison
+
+---
+
+### Phase 1B.4: Validation of Targeted Training
+
+**Validation Script:**
+- `scripts/validate_phase1b1.sh` + `scripts/validate_phase1b1_optimized.py` - **Cost-optimized validation**
+  - **KEY OPTIMIZATION**: Reuses GPT-4 responses from Phase 1A benchmarks
+  - Savings: 50% cost (~$0.75 instead of $1.50) and 50% time (15-20 min instead of 30-40 min)
+  - Method: Load Phase 1A prompts + GPT-4 responses → Generate Phase 1B.1 responses → Judge
+  - Compares: Phase 1B.1 results vs Phase 1A baseline
+  - Extracts: Win/loss/tie improvements
+  - Requires: OpenAI API key (for judging only, not generation)
+  - When: After Phase 1B.1 training completes
+  - Why optimized: Same prompts tested, Phase 1A already has GPT-4 responses saved
+
+**Execution:**
+```bash
+# On Vast.ai H100
+export OPENAI_API_KEY='your-key-here'
+cd /workspace/data/Cogumi-LLM
+bash scripts/validate_phase1b1.sh
+```
+
+**Output:**
+- `checkpoints/benchmark_results_phase1b1/` - Phase 1B.1 benchmark results
+- `validation_summary.txt` - Comparison with Phase 1A, decision criteria
+- Shows: MATH wins (6% → 20-30%?), CODE wins (48% → 55-65%?)
+
+**Cost Breakdown:**
+- Original approach: 100 prompts × (1 GPT-4 gen @ $0.0075 + 1 judge @ $0.0075) = $1.50
+- Optimized approach: 100 prompts × (1 judge @ $0.0075 only) = $0.75
+- Savings: $0.75 per validation run (50% reduction)
+
+**Time Breakdown:**
+- Original: ~30-40 minutes (GPT-4 generation + judging)
+- Optimized: ~15-20 minutes (judging only, local inference for Phase 1B.1)
+
+**Decision Criteria:**
+- ✅ Success: MATH 3x-5x improvement, CODE +15-35% → Proceed to Phase 1B.2
+- 🔄 Iterate: Below targets → Adjust epochs/learning rate, re-train
+
+---
+
+### Phase 1B.5: Scale Up (Phase 1B.2)
+
+**Status:** Not yet implemented
+
+**Planned Approach:**
+1. Run Phase 1A model on GSM8K train set (7,473 problems)
+2. Extract ~2,000 additional failures
+3. Train on 73 + 2,000 = 2,073 examples using `train_phase1b_benchmark.py`
+4. Expected: MATH 55-65%, CODE 70-75%
+
+**Files to Create:**
+- `scripts/extract_gsm8k_failures.py` - Extract failures from GSM8K train
+- Update `train_phase1b_benchmark.py` to handle larger datasets
+
+---
+
+### Phase 2: Compression (Pending)
+
+**Planned Scripts:**
+- `scripts/neural_magic_pruning.py` - 65% sparsity pruning (10GB → 3.5GB)
+- `scripts/awq_quantization.py` - 4-bit quantization (3.5GB → 900MB)
+- `scripts/gguf_export.py` - GGUF Q5_K_M format (900MB → 600MB)
+- `scripts/zstd_compression.py` - Lossless compression (600MB → 500MB)
+- `scripts/recovery_finetuning.py` - Quality recovery (500MB → 520MB)
+
+**Notebooks:**
+- `notebooks/Phase2_Compression_Colab.ipynb` - Full compression pipeline
+
+---
+
+### Phase 3: Domain Modifiers (Pending)
+
+**Planned Structure:**
+- Code Modifier: 3-tier cascaded teaching (Qwen-Coder, DeepSeek, GPT-5)
+- Reasoning Modifier: 3-tier cascaded teaching (Llama-405B, GPT-4o, GPT-5)
+- Automation Modifier: 3-tier cascaded teaching (Claude-3.5, GPT-4o, GPT-5)
+
+**Files to Create:**
+- `scripts/train_code_modifier.py` - Train code modifier (47MB)
+- `scripts/train_reasoning_modifier.py` - Train reasoning modifier (48MB)
+- `scripts/train_automation_modifier.py` - Train automation modifier (40MB)
+
+---
+
+### Phase 4: Router System (Pending)
+
+**Planned Components:**
+- Router: 3-layer feedforward (13MB, 97% accuracy)
+- Escalation Detector: LSTM (3MB, 94% accuracy)
+
+**Files to Create:**
+- `src/phase4_router/router_trainer.py` - Train routing model
+- `src/phase4_router/escalation_detector.py` - Train escalation detector
+- `scripts/optimize_thresholds.py` - A/B testing for confidence thresholds
+
+---
+
+### Phase 5: Deployment (Pending)
+
+**Planned Tools:**
+- HuggingFace upload and Inference API setup
+- Gradio chat interface
+- Monitoring dashboard (Grafana)
+- Validation suite
+
+**Files to Create:**
+- `scripts/upload_to_huggingface.py` - Upload model components
+- `scripts/setup_inference_api.py` - Configure HF Inference API
+- `src/phase5_deployment/gradio_app.py` - Chat interface
+- `scripts/validation_suite.py` - Automated quality gates
+
+---
+
 ## PHASE 0: CURATED DATASET (IMPLEMENTED ✅)
 
 ### Objective

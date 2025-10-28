@@ -32,18 +32,46 @@
 
 ## 🎯 PHASE 1: MVP - BASE MODEL & 3 MODIFIERS (14 Weeks)
 
-### Phase 1A: Base Model Training (4 weeks, $505)
-- [ ] **1A. Train Base Model** - Axolotl QLoRA on 640K English curated data
-  - Setup: Download LLAMA-3.2-8B, configure Axolotl QLoRA (rank 64, 4-bit)
-  - Training: 3 epochs on 640K examples, early stopping, validation monitoring
-  - Target: 89-91% GPT-4 baseline, ~11GB model
-  - **English optimization**: Training only on English data → English-optimized weights
+### Phase 1A: Base Model Training (3 weeks, $220) ✅ COMPLETE
+- [x] **1A. Train Base Model** - Unsloth QLoRA on 640K English curated data
+  - Setup: LLAMA-3.1-8B-Instruct, Unsloth QLoRA (rank 64, 4-bit)
+  - Training: 3 epochs on 640K examples (28K steps)
+  - Result: Trained model at `/workspace/data/Cogumi-LLM/checkpoints/final`
+  - **Benchmarks (Oct 2025):**
+    - MATH: 41% (70% ties - consistency issue detected)
+    - CODE (HumanEval): 58% (28% ties)
+    - REASONING (MMLU): 86% correct
 
-### Phase 1B: Failure Analysis (2 days, $5)
-- [ ] **1B. Test & Cluster Failures** - 50K examples → 12-14K failures → 8-12 categories
+### Phase 1B: Self-Consistency Training (1 week, $12-17) 🔄 IN PROGRESS
+- [x] **Diagnostic**: Identified 10% consistency problem (root cause of high ties)
+- [ ] **1B.1 Generate Self-Consistent Data** - Category-specific temperature strategies
+  - MATH/CODE: Generate at temp=0.0 (deterministic)
+  - CREATIVITY: Generate at temp=0.7 → train at temp=0.3
+  - Output: 664 examples (500 MATH + 164 CODE) in self_distillation/
+  - Script: `scripts/self_consistency_distillation.py`
+  - Execution: `scripts/run_phase1b_self_consistency.sh`
+  - Time: 2-3 hours, Cost: $2-3
+- [ ] **1B.2 Train on Consistent Data** - QLoRA fine-tune (2 epochs, lr=5e-6)
+  - Input: self_distillation/*.jsonl (664 examples)
+  - Output: checkpoints/self_consistent
+  - Time: 3-4 hours, Cost: $6-8
+- [ ] **1B.3 Re-Benchmark** - Measure consistency improvement
+  - Target: 10% → 60-80% consistency
+  - Expected: MATH 41% → 65-75%, CODE 58% → 70-80%
+  - Ties: MATH 70% → <30%, CODE 28% → <20%
+  - Time: 2-3 hours, Cost: $4-6
 
-### Phase 1C: GPT-5 Targeted Distillation (1 week, $285)
-- [ ] **1C. Generate & Train** - 40K GPT-5 examples → 88-100% GPT-4 baseline
+**Success Criteria (MUST PASS ALL):**
+- ✅ Consistency ≥60% (diagnostic test)
+- ✅ MATH score ≥65% (up from 41%)
+- ✅ CODE score ≥70% (up from 58%)
+- ✅ MATH ties <30% (down from 70%)
+- ✅ CODE ties <20% (down from 28%)
+
+### Phase 1C: GPT-5 Targeted Distillation (1 week, $285) ⏳ PENDING
+- [ ] **1C.1 Failure Analysis** - Test self-consistent model on 50K examples
+- [ ] **1C.2 Cluster & Label** - Identify 8-12 failure patterns
+- [ ] **1C.3 GPT-5 Distillation** - 40K examples targeting weaknesses → 88-100% GPT-4
 
 ---
 
