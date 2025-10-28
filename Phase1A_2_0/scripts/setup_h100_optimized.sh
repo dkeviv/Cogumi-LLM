@@ -196,9 +196,9 @@ echo "=================================================================="
 echo "Using specific version to avoid dependency conflicts..."
 
 # Try git installation first
-pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git@2024.7" || {
+pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git@July-2024" || {
     echo "⚠️  Git installation failed. Trying pip..."
-    pip install "unsloth[colab-new]==2024.7" || {
+    pip install "unsloth[colab-new]==July-2024" || {
         echo "❌ ERROR: Unsloth installation failed"
         echo "This is CRITICAL for 2-3× speedup. Cannot proceed."
         exit 1
@@ -206,7 +206,7 @@ pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git@2
 }
 
 # Verify Unsloth installation
-python -c "import unsloth; print('✅ Unsloth 2024.7 installed')" || {
+python -c "import unsloth; print('✅ Unsloth July-2024 installed')" || {
     echo "❌ ERROR: Unsloth import failed"
     exit 1
 }

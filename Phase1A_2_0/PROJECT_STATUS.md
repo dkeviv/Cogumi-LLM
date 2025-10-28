@@ -69,7 +69,7 @@ model_name = "unsloth/meta-llama-3.1-8b-instruct-unsloth-bnb-4bit"
 | PyTorch | 2.3.1+cu121 | Stable, H100 support, wheels available |
 | Flash Attention | 2.5.8 | Pre-compiled wheel (10 sec install) |
 | Transformers | 4.43.3 | Stable, Llama 3.1 support |
-| Unsloth | 2024.7 | No conflicts (2024.8+ has issues) |
+| Unsloth | July-2024 | No conflicts (2024.8+ has issues) |
 | NumPy | 1.26.4 | Compatible (2.0+ breaks packages) |
 
 ### 3. Optimized Training Configuration

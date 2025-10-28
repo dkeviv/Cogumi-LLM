@@ -64,10 +64,10 @@ datasets==2.19.1
 # ----------------------------------------------------------------------------
 # 5. UNSLOTH - OPTIONAL BUT RECOMMENDED (2-3x speedup)
 # ----------------------------------------------------------------------------
-# Use git version for compatibility
+# Use git version for compatibility (July-2024 tag is stable)
 # This provides Unsloth library WITHOUT pre-quantized base
 # IMPORTANT: Use with full precision meta-llama/Meta-Llama-3.1-8B-Instruct
-unsloth @ git+https://github.com/unslothai/unsloth.git@2024.7
+unsloth @ git+https://github.com/unslothai/unsloth.git@July-2024
 
 # ----------------------------------------------------------------------------
 # 6. SUPPORTING LIBRARIES

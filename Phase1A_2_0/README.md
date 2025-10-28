@@ -169,7 +169,7 @@ Phase1A_2_0/
 |-----------|--------------|--------------|--------|
 | **PyTorch** | 2.8.0 (doesn't exist) | 2.3.1 ✅ | Stable |
 | **Transformers** | 4.56.2 (too new) | 4.43.3 ✅ | Stable |
-| **Unsloth** | 2025.10.8 (conflicts) | 2024.7 ✅ | Stable |
+| **Unsloth** | 2025.10.8 (conflicts) | July-2024 ✅ | Stable |
 | **Flash Attention** | Compiled from source | Pre-compiled wheel ✅ | Fast |
 | **NumPy** | Not specified | 1.26.4 ✅ | Compatible |
 | **TRL** | 0.23.0 (too new) | 0.9.6 ✅ | Stable |
@@ -203,9 +203,9 @@ pip install numpy==1.26.4 --force-reinstall
 ### Issue 3: Unsloth Version Conflicts
 **Problem**: Unsloth 2024.8+ has dependency conflicts with certain Transformers versions.
 
-**Solution**: Use Unsloth 2024.7:
+**Solution**: Use Unsloth July-2024:
 ```bash
-pip install git+https://github.com/unslothai/unsloth.git@2024.7
+pip install git+https://github.com/unslothai/unsloth.git@July-2024
 ```
 
 ### Issue 4: PyTorch 2.8.0 Doesn't Exist

@@ -173,7 +173,7 @@ pip install -r requirements-stable-precompiled.txt
 # - PyTorch 2.3.1+cu121 (30 sec)
 # - Flash Attention 2.5.8 from pre-compiled wheel (10 sec)
 # - Transformers 4.43.3 (10 sec)
-# - Unsloth 2024.7 (30 sec)
+# - Unsloth July-2024 (30 sec)
 # - NumPy 1.26.4 (5 sec)
 # - All other dependencies (2-3 min)
 
