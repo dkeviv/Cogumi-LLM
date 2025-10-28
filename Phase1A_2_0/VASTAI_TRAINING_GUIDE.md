@@ -221,6 +221,17 @@ pip install -r requirements-stable-precompiled.txt
 3. **--no-build-isolation** flag disables this isolation, allowing Flash Attention to import dependencies
 4. **This flag cannot be specified in requirements.txt**, must be done manually
 
+**Common Installation Issues & Solutions:**
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `ModuleNotFoundError: No module named 'torch'` | Flash Attention can't find torch in build isolation | Use `--no-build-isolation` flag (Stage 3) |
+| `ModuleNotFoundError: No module named 'psutil'` | Flash Attention needs psutil during build | Install psutil first (Stage 2) |
+| `ResolutionImpossible: huggingface-hub==0.23.0` | transformers 4.43.3 requires >=0.23.2 | Already fixed in requirements (uses 0.23.4) |
+| `git checkout -q 2024.7 did not match` | Unsloth uses month-name tags | Already fixed in requirements (uses July-2024) |
+
+**If installation fails**: Pull latest from git (`git pull origin main`) - these issues have been fixed.
+
 #### Step 3.4: Verify Installation
 ```bash
 python verify_h100_environment.py
