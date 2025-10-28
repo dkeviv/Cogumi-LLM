@@ -91,8 +91,8 @@ python scripts/verify_environment.py
 ```
 
 **Installed Versions (CUDA 12.4)**:
-- PyTorch: 2.8.0+cu124
-- xformers: 0.0.32.post2
+- PyTorch: 2.6.0+cu124 (latest stable for CUDA 12.4)
+- xformers: Auto-matched to PyTorch version
 - Flash Attention: Latest compatible (2.x)
 - Transformers: 4.43.3
 - Unsloth: July-2024

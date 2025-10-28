@@ -5,7 +5,7 @@
 # All versions verified to work together with pre-compiled binaries
 # Last verified: October 2025
 # CUDA Version: 12.4
-# PyTorch Version: 2.8.0+cu124
+# PyTorch Version: 2.6.0+cu124 (latest stable for CUDA 12.4)
 # ============================================================================
 
 # ============================================================================
@@ -44,9 +44,9 @@
 
 # ============================================================================
 # CORE PRINCIPLE: Use STABLE versions with pre-compiled wheels
-# - PyTorch 2.8.0+cu124 (latest stable for CUDA 12.4)
+# - PyTorch 2.6.0+cu124 (latest stable for CUDA 12.4)
 # - Flash Attention 2.x (auto-selected for CUDA 12.4)
-# - xformers 0.0.32+ (memory-efficient attention, required by Unsloth)
+# - xformers (auto-selected to match PyTorch version)
 # - Transformers 4.43.3 (stable, Llama 3.1 support)
 # - Unsloth July-2024 (2-3× training speedup)
 # ============================================================================
@@ -63,7 +63,7 @@
 # ----------------------------------------------------------------------------
 # Install from official PyTorch wheel repository
 # CUDA 12.4 is the latest stable version for H100
-# Latest versions: PyTorch 2.8.0, torchvision 0.20.0, torchaudio 2.6.0
+# Latest versions: PyTorch 2.6.0, torchvision, torchaudio (auto-matched)
 # NOTE: These should be installed in Stage 1 (see installation sequence above)
 # Command: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
@@ -110,8 +110,8 @@ datasets==2.19.1
 # ----------------------------------------------------------------------------
 # xformers provides memory-efficient attention operations
 # Required by Unsloth for 2-3× speedup
-# Pre-compiled wheel for PyTorch 2.8.0 + CUDA 12.4
-# Latest compatible version: 0.0.32.post2 (auto-selected by pip)
+# Version auto-selected by pip to match PyTorch version
+# For PyTorch 2.6.0+cu124: xformers will auto-select compatible version
 # Note: Use flexible version constraint to avoid torch version conflicts
 xformers>=0.0.26
 

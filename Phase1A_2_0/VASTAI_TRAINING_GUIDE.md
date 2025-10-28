@@ -178,7 +178,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 # Verify PyTorch installed and importable
 python -c "import torch; print(f'✅ PyTorch {torch.__version__} installed')"
-# Expected: ✅ PyTorch 2.8.0+cu124 installed
+# Expected: ✅ PyTorch 2.6.0+cu124 installed (or latest for CUDA 12.4)
 ```
 
 **Stage 2: Install psutil (required by Flash Attention's setup.py)**
@@ -210,7 +210,7 @@ pip install -r requirements-stable-precompiled.txt
 
 # This will install:
 # - Transformers 4.43.3 (10 sec)
-# - xformers 0.0.32+ (required by Unsloth) (20 sec)
+# - xformers (auto-matched to PyTorch version) (20 sec)
 # - Unsloth July-2024 (30 sec)
 # - NumPy 1.26.4 (5 sec)
 # - All other dependencies (2-3 min)
