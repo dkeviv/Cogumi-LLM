@@ -110,3 +110,6 @@ docs/archive2/
 scripts/archive/
 configs/archive/
 archive_old_src/
+*.jsonl
+Phase0/data/*.jsonl
+Phase1A_2_0/data/*.jsonl

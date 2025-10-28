@@ -32,17 +32,28 @@
 
 ## 🎯 PHASE 1: MVP - BASE MODEL & 3 MODIFIERS (14 Weeks)
 
-### Phase 1A: Base Model Training (3 weeks, $220) ✅ COMPLETE
-- [x] **1A. Train Base Model** - Unsloth QLoRA on 640K English curated data
-  - Setup: LLAMA-3.1-8B-Instruct, Unsloth QLoRA (rank 64, 4-bit)
-  - Training: 3 epochs on 640K examples (28K steps)
-  - Result: Trained model at `/workspace/data/Cogumi-LLM/checkpoints/final`
-  - **Benchmarks (Oct 2025):**
-    - MATH: 41% (70% ties - consistency issue detected)
-    - CODE (HumanEval): 58% (28% ties)
-    - REASONING (MMLU): 86% correct
+### Phase 1A: Base Model Training (3 weeks, $220) 🚨 CORRUPTED - RETRAIN REQUIRED
+- [x] **1A (OLD - CORRUPTED)** - Trained on 4-bit quantized base (ARCHITECTURE ERROR)
+  - Setup: LLAMA-3.1-8B-Instruct, Unsloth 4-bit QLoRA (rank 64)
+  - Result: Adapter at `/data/checkpoints/final/` **DO NOT USE**
+  - Merged: `checkpoints/phase1a_merged/` **DO NOT USE**
+  - **Issue:** Training on 4-bit base caused catastrophic merge corruption
+  - **Evidence:** MATH 28% ties (expected 70%), CODE 12% wins (expected 48%)
+  - **Root Cause:** 4-bit merge rounding errors (-42% ties, -36% code wins)
 
-### Phase 1B: Self-Consistency Training (1 week, $12-17) 🔄 IN PROGRESS
+- [ ] **1A (CORRECTED)** - Retrain on FULL PRECISION base (18 hours, $36-46)
+  - Script: `train_phase1a_fullprecision.py` ✅ READY
+  - Base: `meta-llama/Meta-Llama-3.1-8B-Instruct` (bfloat16, NOT unsloth)
+  - Training: 3 epochs, 28K steps, ~12-16 hours on A100 80GB
+  - Output: `data/checkpoints/phase1a_fullprecision/`
+  - Merge: `scripts/merge_adapter_fullprecision.py` ✅ READY
+  - Output: `checkpoints/phase1a_merged_fullprecision/` (~16GB)
+  - **Expected:** MATH 6% wins, 70% ties / CODE 48% wins, 20% ties
+  - **See:** `docs/PHASE1A_RETRAINING_PLAN.md` for detailed execution plan
+
+**⚠️ CRITICAL:** All Phase 1B work blocked until Phase 1A retraining completes
+
+### Phase 1B: Targeted Improvement (1 week) ⏳ BLOCKED BY PHASE 1A RETRAINING
 - [x] **Diagnostic**: Identified 10% consistency problem (root cause of high ties)
 - [ ] **1B.1 Generate Self-Consistent Data** - Category-specific temperature strategies
   - MATH/CODE: Generate at temp=0.0 (deterministic)

@@ -12,13 +12,91 @@
 
 ---
 
-## 📋 CURRENT STATUS (October 27, 2025)
+## 📋 CURRENT STATUS (January 25, 2025)
 
-### 🔄 PHASE 1B: SELF-CONSISTENCY TRAINING (Ready to Execute)
+### � PHASE 1A: CRITICAL ARCHITECTURE ERROR DISCOVERED - RETRAIN REQUIRED
 
-**Strategy:** Fix 10% consistency problem causing 70% ties in benchmarks
+**CRITICAL ISSUE:** Original Phase 1A training used 4-bit quantized base model, causing catastrophic merge corruption.
 
-#### Phase 1A Results (COMPLETE ✅)
+#### Discovery Timeline
+1. **Phase 1B training showed catastrophic forgetting** (0% wins, 78% losses)
+2. **Filtered training data** (removed ties) - still failed (4% wins, 24% ties)
+3. **Tested Phase 1A merged baseline** - discovered severe corruption:
+   - MATH: 4% wins, **28% ties** (expected 6% wins, **70% ties**) ❌
+   - CODE: 12% wins, **0% ties** (expected 48% wins, **20% ties**) ❌
+   - **Degradation:** -42% ties, -36% code wins
+4. **Investigated merge process** - found 4-bit quantization warning
+5. **Verified training base** - `adapter_config.json` shows:
+   ```json
+   "base_model_name_or_path": "unsloth/meta-llama-3.1-8b-instruct-unsloth-bnb-4bit"
+   ```
+6. **ROOT CAUSE:** Training on quantized base violates standard fine-tuning workflow
+
+#### Architecture Error Explained
+**Wrong Workflow (What Happened):**
+```
+Train LoRA on 4-bit quantized base 
+→ Adapter learns to compensate for quantization artifacts
+→ Merge 4-bit weights + adapter offsets
+→ 4-bit rounding errors during merge
+→ Corrupted model (70% ties → 28%)
+```
+
+**Correct Workflow (Standard Practice):**
+```
+Train LoRA on full precision base (bfloat16)
+→ Adapter learns clean weight updates
+→ Merge full precision weights + adapter offsets
+→ Clean merge, no rounding errors
+→ Correct model
+→ Optionally quantize for deployment
+```
+
+#### Impact Assessment
+- ❌ All Phase 1A work must be redone (training + merge)
+- ❌ Phase 1A merged model severely corrupted (DO NOT USE)
+- ❌ All Phase 1B training attempts built on corrupted foundation
+- ❌ Estimated delay: 2-3 days (retraining + validation)
+- ❌ Cost: Additional $36-46 for corrected training
+
+#### Corrected Approach (Ready to Execute)
+- ✅ **Script:** `train_phase1a_fullprecision.py` (corrected training)
+- ✅ **Script:** `scripts/merge_adapter_fullprecision.py` (clean merge)
+- ✅ **Plan:** `docs/PHASE1A_RETRAINING_PLAN.md` (detailed execution)
+- ✅ **Base:** `meta-llama/Meta-Llama-3.1-8B-Instruct` (bfloat16, NOT unsloth 4-bit)
+- ✅ **Training:** 12-16 hours on A100 80GB, ~28K steps
+- ✅ **Output:** `data/checkpoints/phase1a_fullprecision/`
+- ✅ **Merge:** `checkpoints/phase1a_merged_fullprecision/` (~16GB, clean)
+
+#### Next Steps
+1. **Setup Vast.ai A100 80GB instance** (10 mins)
+2. **Run corrected training** (12-16 hours, $30-40)
+3. **Merge adapter with full precision base** (30 mins)
+4. **Validate merged model** (2 hours):
+   - Expected: MATH 6% wins, 70% ties / CODE 48% wins, 20% ties
+   - If validated → Proceed to Phase 1B
+   - If not → Investigate further
+5. **Extract failures and train Phase 1B** (on correct foundation)
+
+#### Files Invalidated (DO NOT USE)
+- ❌ `data/checkpoints/final/` - Adapter trained on 4-bit base
+- ❌ `checkpoints/phase1a_merged/` - Corrupted merged model
+- ❌ All Phase 1B training scripts/results (built on corrupted base)
+
+#### Lesson Learned
+- **NEVER train on quantized base for production models**
+- Quantization = deployment optimization, NOT training optimization
+- Unsloth's 4-bit optimization saved memory but broke architecture
+- Always validate: Check `adapter_config.json` for exact base model used
+- Standard workflow: Train full precision → Merge → Optionally quantize
+
+**See:** `docs/ISSUES_LOG.md` (2025-01-25 entry) for full technical analysis
+
+---
+
+### 🔄 PREVIOUS STATUS (October 27, 2025) - NOW OBSOLETE
+
+#### Phase 1A Results (COMPLETE BUT CORRUPTED ❌)
 - **Trained Model:** `/workspace/data/Cogumi-LLM/checkpoints/final`
 - **Benchmarks:**
   - MATH (GSM8K): 41% correct, **70% ties** ❌

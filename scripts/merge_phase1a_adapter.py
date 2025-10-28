@@ -73,14 +73,15 @@ def merge_adapter(
     print("   (This may take a few minutes to download from HuggingFace)")
     print()
     
-    # Load base model
+    # Load base model with 4-bit to save memory during merge
     base_model = AutoModelForCausalLM.from_pretrained(
         base_model_name,
-        torch_dtype=torch.float16,
+        load_in_4bit=True,
         device_map="auto",
+        max_memory={0: "22GB"},  # Leave headroom
         trust_remote_code=False
     )
-    print("✅ Base model loaded")
+    print("✅ Base model loaded (4-bit to save memory)")
     print()
     
     # Load adapter
