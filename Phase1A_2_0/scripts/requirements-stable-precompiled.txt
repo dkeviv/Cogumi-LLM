@@ -124,8 +124,8 @@ numpy==1.26.4
 scipy==1.13.0
 scikit-learn==1.4.2
 
-# HuggingFace Hub
-huggingface-hub==0.23.0
+# HuggingFace Hub (>=0.23.2 required by transformers 4.43.3)
+huggingface-hub==0.23.4
 
 # Logging and monitoring
 tensorboard==2.16.2
