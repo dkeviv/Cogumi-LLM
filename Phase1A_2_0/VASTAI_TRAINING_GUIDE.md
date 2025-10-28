@@ -168,6 +168,17 @@ pip install --upgrade pip setuptools wheel
 
 **CRITICAL**: Install in 4 stages to avoid Flash Attention build errors
 
+**Stage 0: Complete Clean Uninstall (if reinstalling)**
+```bash
+# Uninstall ALL existing packages to start fresh
+pip uninstall torch torchvision torchaudio xformers transformers \
+    psutil flash-attn bitsandbytes peft accelerate trl unsloth -y
+
+# Verify clean state
+pip list | grep -E "torch|xformers|transformers"
+# Should show nothing
+```
+
 **Stage 1: Install PyTorch first (required by Flash Attention)**
 ```bash
 # CLEAN INSTALL: First uninstall any existing PyTorch packages
@@ -206,7 +217,8 @@ python -c "import flash_attn; print('✅ Flash Attention installed')"
 **Stage 4: Install everything else**
 ```bash
 # Now install all other dependencies
-pip install -r requirements-stable-precompiled.txt
+# Use --upgrade-strategy only-if-needed to avoid reinstalling PyTorch
+pip install -r requirements-stable-precompiled.txt --upgrade-strategy only-if-needed
 
 # This will install:
 # - Transformers 4.43.3 (10 sec)

@@ -64,6 +64,10 @@ Based on empirical testing (38hr baseline):
 
 ### Quick Start (5-10 minutes)
 ```bash
+# 0. OPTIONAL: Complete clean uninstall if reinstalling
+pip uninstall torch torchvision torchaudio xformers transformers \
+    psutil flash-attn bitsandbytes peft accelerate trl unsloth -y
+
 # 1. Create virtual environment
 python3.10 -m venv venv_phase1a_2_0
 source venv_phase1a_2_0/bin/activate
@@ -83,12 +87,14 @@ pip install psutil==5.9.8
 pip install flash-attn --no-build-isolation
 
 # 6. Install all other dependencies
-pip install -r requirements-stable-precompiled.txt
+pip install -r requirements-stable-precompiled.txt --upgrade-strategy only-if-needed
 
 # 7. Verify installation
 python scripts/verify_environment.py
 # Expected: Configuration Score: 90-100%
 ```
+
+**Why --upgrade-strategy only-if-needed?** Prevents pip from reinstalling PyTorch when installing xformers, which depends on specific torch versions.
 
 **Installed Versions (CUDA 12.4)**:
 - PyTorch: 2.6.0+cu124 (latest stable for CUDA 12.4)

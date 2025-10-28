@@ -24,6 +24,10 @@
 #
 # INSTALLATION SEQUENCE FOR CUDA 12.4:
 #
+#   # Stage 0: Complete Clean Uninstall (if reinstalling)
+#   pip uninstall torch torchvision torchaudio xformers transformers \
+#       psutil flash-attn bitsandbytes peft accelerate trl unsloth -y
+#
 #   # Stage 1: PyTorch first (CUDA 12.4) - CLEAN INSTALL
 #   pip uninstall torch torchvision torchaudio -y
 #   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
@@ -38,7 +42,9 @@
 #   python -c "import flash_attn; print('✅ Flash Attention installed')"
 #
 #   # Stage 4: Everything else
-#   pip install -r requirements-stable-precompiled.txt
+#   pip install -r requirements-stable-precompiled.txt --upgrade-strategy only-if-needed
+#
+# Note: --upgrade-strategy only-if-needed prevents reinstalling PyTorch/xformers
 #
 # ============================================================================
 
