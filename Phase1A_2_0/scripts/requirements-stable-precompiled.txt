@@ -9,19 +9,26 @@
 # ============================================================================
 # ⚠️  INSTALLATION WARNING - READ BEFORE INSTALLING ⚠️
 # ============================================================================
-# DO NOT install with: pip install -r requirements-stable-precompiled.txt
+# DO NOT install with: pip install -r requirements-stable-precompiled.txt ONLY
 # 
-# CORRECT 2-STAGE INSTALLATION (to avoid Flash Attention build errors):
+# CORRECT 3-STAGE INSTALLATION (to avoid Flash Attention build errors):
 #
 # Stage 1: Install PyTorch FIRST
 #   pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
 #       --extra-index-url https://download.pytorch.org/whl/cu121
 #
-# Stage 2: Install everything else
+# Stage 2: Install Flash Attention with --no-build-isolation
+#   pip install flash-attn==2.5.8 --no-build-isolation \
+#       --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
+#
+# Stage 3: Install everything else
 #   pip install -r requirements-stable-precompiled.txt
 #
-# Why? Flash Attention's build system needs PyTorch installed to find
-# pre-compiled wheels. Without PyTorch, it tries to build from source and fails.
+# Why 3 stages?
+# 1. Flash Attention IMPORTS torch during setup.py (not just checks if installed)
+# 2. pip's build isolation creates a clean environment without installed packages
+# 3. --no-build-isolation lets Flash Attention access the installed PyTorch
+# 4. This cannot be specified in requirements.txt, must be done manually
 # ============================================================================
 
 # ============================================================================
@@ -51,15 +58,17 @@ torchvision==0.18.1+cu121
 torchaudio==2.3.1+cu121
 
 # ----------------------------------------------------------------------------
-# 2. FLASH ATTENTION 2 - PRE-COMPILED WHEELS (REQUIRES PYTORCH INSTALLED)
+# 2. FLASH ATTENTION 2 - MUST BE INSTALLED SEPARATELY
 # ----------------------------------------------------------------------------
-# Official pre-compiled wheels from Flash Attention team
-# MUST match PyTorch version (2.3.x) and CUDA version (12.1)
-# Installs in 10 seconds vs 5-10 minutes compilation
-# CRITICAL: PyTorch must be installed first (above)
---extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
-
-flash-attn==2.5.8
+# ⚠️  FLASH ATTENTION NOT IN THIS FILE - INSTALL MANUALLY
+# Flash Attention's build system imports torch during setup.py execution
+# Must use --no-build-isolation flag (cannot be specified in requirements.txt)
+# 
+# MANUAL INSTALLATION REQUIRED:
+#   pip install flash-attn==2.5.8 --no-build-isolation \
+#       --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
+#
+# See installation guide for correct sequence
 
 # ----------------------------------------------------------------------------
 # 3. BITSANDBYTES - PRE-COMPILED WHEELS

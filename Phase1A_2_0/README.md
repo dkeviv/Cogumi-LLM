@@ -75,15 +75,19 @@ pip install --upgrade pip setuptools wheel
 pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
     --extra-index-url https://download.pytorch.org/whl/cu121
 
-# 4. Install all other dependencies (pre-compiled wheels)
+# 4. Install Flash Attention with --no-build-isolation (CRITICAL FLAG!)
+pip install flash-attn==2.5.8 --no-build-isolation \
+    --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
+
+# 5. Install all other dependencies
 pip install -r requirements-stable-precompiled.txt
 
-# 5. Verify installation
+# 6. Verify installation
 python scripts/verify_environment.py
 # Expected: Configuration Score: 90-100%
 ```
 
-**Why install PyTorch first?** Flash Attention's build system needs PyTorch installed to find pre-compiled wheels.
+**Why --no-build-isolation?** Flash Attention's setup.py imports torch. pip's default build isolation prevents access to installed packages. The --no-build-isolation flag disables this, allowing Flash Attention to import torch during build.
 
 ### Manual Installation (if automated fails)
 ```bash
