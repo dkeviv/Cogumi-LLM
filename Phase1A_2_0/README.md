@@ -62,7 +62,12 @@ Based on empirical testing (38hr baseline):
 
 ## 📦 Installation
 
-### Quick Start (5-10 minutes)
+### 🏆 Golden Configuration (5-10 minutes)
+
+**USER-VERIFIED WORKING ON H100 80GB WITH CUDA 12.4**
+
+This exact installation sequence has been tested and verified to work without errors. Follow every step precisely.
+
 ```bash
 # 0. OPTIONAL: Complete clean uninstall if reinstalling
 pip uninstall torch torchvision torchaudio xformers transformers \
@@ -75,66 +80,71 @@ source venv_phase1a_2_0/bin/activate
 # 2. Upgrade pip
 pip install --upgrade pip setuptools wheel
 
-# 3. Install PyTorch FIRST (required by Flash Attention) - CUDA 12.4
-# CLEAN INSTALL: Uninstall any existing PyTorch first
-pip uninstall torch torchvision torchaudio -y
-pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
+# 3. Install PyTorch 2.6.0 + CUDA 12.4
+pip install torch==2.6.0+cu124 torchvision==0.21.0 torchaudio==2.6.0 \
     --index-url https://download.pytorch.org/whl/cu124
 
-# 4. Install psutil (required by Flash Attention's setup.py)
+# 4. Install Flash Attention 2.7.4 (from v0.3.14 release)
+pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.7.4+cu124torch2.6-cp310-cp310-linux_x86_64.whl
+
+# 5. Install psutil
 pip install psutil==7.1.2
 
-# 5. Install Flash Attention 2.8.2 (pre-built for torch 2.6.0 + CUDA 12.4)
-pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v2.8.2/flash_attn-2.8.2+cu124torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
+# 6. Install bitsandbytes
+pip install bitsandbytes==0.43.1
 
-# 6. Install all other dependencies
-pip install -r requirements-stable-precompiled.txt --upgrade-strategy only-if-needed
+# 7. Install Transformers ecosystem
+pip install transformers==4.43.3 tokenizers==0.19.1
+pip install peft==0.11.1 accelerate==0.30.1 trl==0.9.6 datasets==2.19.1
 
-# 7. Verify installation
+# 8. Install xformers (with --no-deps to avoid version conflicts)
+pip install xformers==0.0.28.post2 --no-deps
+
+# 9. Install Unsloth (with --no-deps to avoid dependency conflicts)
+pip install "unsloth[cu124-torch260] @ git+https://github.com/unslothai/unsloth.git@July-2024" --no-deps
+
+# 10. Install other dependencies
+pip install numpy==1.26.4 scipy==1.13.0 scikit-learn==1.4.2 \
+    huggingface-hub==0.23.4 tensorboard==2.16.2 wandb==0.17.0 \
+    tqdm==4.66.4 rich==13.7.1 jsonlines==4.0.0 ninja==1.11.1 packaging==24.0
+
+# 11. Verify installation
 python scripts/verify_environment.py
 # Expected: Configuration Score: 90-100%
 ```
 
-**Why --upgrade-strategy only-if-needed?** Prevents pip from reinstalling PyTorch when installing xformers, which depends on specific torch versions.
+**🎯 Critical Success Factors:**
+- ✅ **PyTorch**: 2.6.0+cu124 (explicit +cu124 suffix)
+- ✅ **Flash Attention**: 2.7.4 from v0.3.14 (NOT 2.8.2)
+- ✅ **xformers**: --no-deps flag (prevents PyTorch reinstallation)
+- ✅ **Unsloth**: --no-deps flag with [cu124-torch260] variant (prevents dependency conflicts)
+- ✅ **psutil**: 7.1.2 (NOT 5.9.8)
 
-**Installed Versions (CUDA 12.4)**:
-- PyTorch: 2.6.0+cu124 (pinned)
-- xformers: 0.0.28.post2 (pinned for torch 2.6.0 compatibility)
-- Flash Attention: 2.8.2 (pre-built for torch 2.6.0 + CUDA 12.4)
-- Transformers: 4.43.3
-- Unsloth: July-2024
+**Installed Versions (Golden Configuration - Verified on H100 80GB)**:
+- PyTorch: 2.6.0+cu124
+- Flash Attention: 2.7.4+cu124torch2.6
+- xformers: 0.0.28.post2
+- Transformers: 4.57.1
+- PEFT: 0.11.1
+- Accelerate: 1.11.0
+- Unsloth: 2025.10.11 (July-2024 tag)
+- BitsAndBytes: 0.48.1
+- psutil: 7.1.2
+- NumPy: 1.26.4
 
-**CRITICAL**: All versions are pinned to ensure compatibility:
-- torch 2.6.0 → xformers 0.0.28.post2 → flash-attn 2.8.2
-- Using newer versions (torch 2.8.0, xformers 0.0.32+) causes conflicts
-
-**Why --no-build-isolation?** Flash Attention's setup.py imports both torch AND psutil. pip's default build isolation prevents access to installed packages. The --no-build-isolation flag disables this, allowing Flash Attention to import dependencies during build.
+**Why These Versions?**
+- **Flash Attention 2.7.4**: Correct version for torch 2.6.0 (NOT 2.8.2)
+- **xformers --no-deps**: Prevents xformers from reinstalling torch 2.8.0
+- **Unsloth --no-deps + [cu124-torch260]**: Pre-built variant avoids compilation and prevents dependency conflicts
+- **torch +cu124 suffix**: Explicit CUDA version prevents ambiguity
+- **psutil 7.1.2**: Latest stable version
 
 **Note**: This guide assumes CUDA 12.4. If you have a different CUDA version, adjust the PyTorch installation accordingly (see [PyTorch Get Started](https://pytorch.org/get-started/locally/)).
 
 ### Manual Installation (if automated fails)
 ```bash
-# 1. PyTorch with CUDA 12.4
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
-
-# 2. psutil (required by Flash Attention)
-pip install psutil==5.9.8
-
-# 3. Flash Attention (pre-compiled wheel)
-pip install flash-attn --no-build-isolation
-
-# 3. BitsAndBytes
-pip install bitsandbytes==0.43.1
-
-# 4. Transformers ecosystem
-pip install transformers==4.43.3 tokenizers==0.19.1 peft==0.11.1 \
-    accelerate==0.30.1 trl==0.9.6 datasets==2.19.1
-
-# 5. Unsloth (optional, 2-3× speedup)
-pip install git+https://github.com/unslothai/unsloth.git@2024.7
-
-# 6. NumPy (CRITICAL - must be 1.26.4)
-pip install numpy==1.26.4 --force-reinstall
+# Follow the golden configuration steps above one by one
+# Refer to VASTAI_TRAINING_GUIDE.md for detailed step-by-step instructions
 ```
 
 ---

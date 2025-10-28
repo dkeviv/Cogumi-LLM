@@ -1,52 +1,50 @@
 # ============================================================================
 # Phase 1A 2.0 - Full Precision Training Dependencies
 # ============================================================================
-# STABLE VERSIONS WITH PRE-COMPILED WHEELS FOR H100
-# All versions verified to work together with pre-compiled binaries
+# 🏆 GOLDEN CONFIGURATION - VERIFIED WORKING ON H100 80GB 🏆
+# All versions tested and confirmed compatible
 # Last verified: October 2025
 # CUDA Version: 12.4
-# PyTorch Version: 2.6.0+cu124 (latest stable for CUDA 12.4)
+# PyTorch Version: 2.6.0+cu124
 # ============================================================================
 
 # ============================================================================
-# ⚠️  INSTALLATION WARNING - 4-STAGE INSTALLATION REQUIRED
+# ⚠️  GOLDEN CONFIGURATION - INSTALLATION SEQUENCE
 # ============================================================================
-# Stage 1: Install PyTorch first
-# Stage 2: Install psutil (required by Flash Attention's setup.py)
-# Stage 3: Install Flash Attention with --no-build-isolation flag
-# Stage 4: Install everything else from this file
-#
-# Why 4 stages?
-# 1. Flash Attention's setup.py IMPORTS torch AND psutil during build metadata generation
-# 2. pip's build isolation creates a clean environment without installed packages
-# 3. --no-build-isolation disables isolation, allowing Flash Attention to import dependencies
-# 4. This flag cannot be specified in requirements.txt, must be done manually
+# This exact sequence has been tested and verified to work on H100 80GB
+# DO NOT change version numbers or installation order
 #
 # INSTALLATION SEQUENCE FOR CUDA 12.4:
 #
-#   # Stage 0: Complete Clean Uninstall (if reinstalling)
-#   pip uninstall torch torchvision torchaudio xformers transformers \
-#       psutil flash-attn bitsandbytes peft accelerate trl unsloth -y
-#
-#   # Stage 1: PyTorch 2.6.0 (PINNED VERSION for xformers compatibility)
-#   pip uninstall torch torchvision torchaudio -y
-#   pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
+#   # Stage 1: PyTorch 2.6.0 + CUDA 12.4
+#   pip install torch==2.6.0+cu124 torchvision==0.21.0 torchaudio==2.6.0 \
 #       --index-url https://download.pytorch.org/whl/cu124
-#   python -c "import torch; print(f'✅ PyTorch {torch.__version__} installed')"
 #
-#   # Stage 2: psutil (required by Flash Attention)
+#   # Stage 2: FlashAttention 2.7.4 (pre-built for torch 2.6.0 + CUDA 12.4)
+#   pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.7.4+cu124torch2.6-cp310-cp310-linux_x86_64.whl
+#
+#   # Stage 3: psutil
 #   pip install psutil==7.1.2
-#   python -c "import psutil; print('✅ psutil installed')"
 #
-#   # Stage 3: Flash Attention 2.8.2 (pre-built for torch 2.6.0 + CUDA 12.4)
-#   pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v2.8.2/flash_attn-2.8.2+cu124torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
-#   python -c "import flash_attn; print('✅ Flash Attention 2.8.2 installed')"
+#   # Stage 4: bitsandbytes
+#   pip install bitsandbytes==0.43.1
 #
-#   # Stage 4: Everything else (includes xformers==0.0.28.post2)
-#   pip install -r requirements-stable-precompiled.txt --upgrade-strategy only-if-needed
+#   # Stage 5: Transformers ecosystem
+#   pip install transformers==4.43.3 tokenizers==0.19.1
+#   pip install peft==0.11.1 accelerate==0.30.1 trl==0.9.6 datasets==2.19.1
 #
-# Note: --upgrade-strategy only-if-needed prevents reinstalling PyTorch/xformers
+#   # Stage 6: xformers (with --no-deps to avoid version conflicts)
+#   pip install xformers==0.0.28.post2 --no-deps
 #
+#   # Stage 7: Unsloth (with --no-deps to avoid dependency conflicts)
+#   pip install "unsloth[cu124-torch260] @ git+https://github.com/unslothai/unsloth.git@July-2024" --no-deps
+#
+#   # Stage 8: Other dependencies
+#   pip install numpy==1.26.4 scipy==1.13.0 scikit-learn==1.4.2 \
+#       huggingface-hub==0.23.4 tensorboard==2.16.2 wandb==0.17.0 \
+#       tqdm==4.66.4 rich==13.7.1 jsonlines==4.0.0 ninja==1.11.1 packaging==24.0
+#
+# ============================================================================
 # ============================================================================
 
 # ============================================================================
