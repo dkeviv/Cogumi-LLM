@@ -170,13 +170,12 @@ pip install --upgrade pip setuptools wheel
 
 **Stage 1: Install PyTorch first (required by Flash Attention)**
 ```bash
-# Install PyTorch 2.3.1 with CUDA 12.1 support
-pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
-    --extra-index-url https://download.pytorch.org/whl/cu121
+# Install latest PyTorch with CUDA 12.4 support (for H100)
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # Verify PyTorch installed and importable
 python -c "import torch; print(f'✅ PyTorch {torch.__version__} installed')"
-# Expected: ✅ PyTorch 2.3.1+cu121 installed
+# Expected: ✅ PyTorch 2.x.x+cu124 installed
 ```
 
 **Stage 2: Install psutil (required by Flash Attention's setup.py)**
@@ -193,8 +192,8 @@ python -c "import psutil; print('✅ psutil installed')"
 ```bash
 # CRITICAL: Use --no-build-isolation flag
 # This allows Flash Attention's setup.py to import torch and psutil
-pip install flash-attn==2.5.8 --no-build-isolation \
-    --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
+# Will use pre-compiled wheel for CUDA 12.4
+pip install flash-attn --no-build-isolation
 
 # Verify Flash Attention installed
 python -c "import flash_attn; print('✅ Flash Attention installed')"
@@ -228,7 +227,8 @@ pip install -r requirements-stable-precompiled.txt
 |-------|-------|----------|
 | `ModuleNotFoundError: No module named 'torch'` | Flash Attention can't find torch in build isolation | Use `--no-build-isolation` flag (Stage 3) |
 | `ModuleNotFoundError: No module named 'psutil'` | Flash Attention needs psutil during build | Install psutil first (Stage 2) |
-| `ModuleNotFoundError: No module named 'xformers'` | Unsloth requires xformers for speedup | Already fixed in requirements (includes xformers 0.0.26.post1) |
+| `ModuleNotFoundError: No module named 'xformers'` | Unsloth requires xformers for speedup | xformers will auto-install with requirements.txt |
+| `xformers depends on torch==2.3.0` (version conflict) | Wrong CUDA version for your system | Use CUDA 12.4: `pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124` |
 | `ResolutionImpossible: huggingface-hub==0.23.0` | transformers 4.43.3 requires >=0.23.2 | Already fixed in requirements (uses 0.23.4) |
 | `git checkout -q 2024.7 did not match` | Unsloth uses month-name tags | Already fixed in requirements (uses July-2024) |
 

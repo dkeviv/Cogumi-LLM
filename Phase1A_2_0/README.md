@@ -71,16 +71,14 @@ source venv_phase1a_2_0/bin/activate
 # 2. Upgrade pip
 pip install --upgrade pip setuptools wheel
 
-# 3. Install PyTorch FIRST (required by Flash Attention)
-pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
-    --extra-index-url https://download.pytorch.org/whl/cu121
+# 3. Install PyTorch FIRST (required by Flash Attention) - CUDA 12.4
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # 4. Install psutil (required by Flash Attention's setup.py)
 pip install psutil==5.9.8
 
 # 5. Install Flash Attention with --no-build-isolation (CRITICAL FLAG!)
-pip install flash-attn==2.5.8 --no-build-isolation \
-    --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
+pip install flash-attn --no-build-isolation
 
 # 6. Install all other dependencies
 pip install -r requirements-stable-precompiled.txt
@@ -92,18 +90,18 @@ python scripts/verify_environment.py
 
 **Why --no-build-isolation?** Flash Attention's setup.py imports both torch AND psutil. pip's default build isolation prevents access to installed packages. The --no-build-isolation flag disables this, allowing Flash Attention to import dependencies during build.
 
+**Note**: This guide assumes CUDA 12.4. If you have a different CUDA version, adjust the PyTorch installation accordingly (see [PyTorch Get Started](https://pytorch.org/get-started/locally/)).
+
 ### Manual Installation (if automated fails)
 ```bash
-# 1. PyTorch with CUDA 12.1
-pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
-    --extra-index-url https://download.pytorch.org/whl/cu121
+# 1. PyTorch with CUDA 12.4
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # 2. psutil (required by Flash Attention)
 pip install psutil==5.9.8
 
 # 3. Flash Attention (pre-compiled wheel)
-pip install flash-attn==2.5.8 --no-build-isolation \
-    --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
+pip install flash-attn --no-build-isolation
 
 # 3. BitsAndBytes
 pip install bitsandbytes==0.43.1

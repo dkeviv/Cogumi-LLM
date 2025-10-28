@@ -20,11 +20,10 @@
 # 3. --no-build-isolation disables isolation, allowing Flash Attention to import dependencies
 # 4. This flag cannot be specified in requirements.txt, must be done manually
 #
-# INSTALLATION SEQUENCE:
+# INSTALLATION SEQUENCE FOR CUDA 12.4:
 #
-#   # Stage 1: PyTorch first
-#   pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
-#       --extra-index-url https://download.pytorch.org/whl/cu121
+#   # Stage 1: PyTorch first (CUDA 12.4)
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 #   python -c "import torch; print(f'✅ PyTorch {torch.__version__} installed')"
 #
 #   # Stage 2: psutil (required by Flash Attention)
@@ -32,8 +31,7 @@
 #   python -c "import psutil; print('✅ psutil installed')"
 #
 #   # Stage 3: Flash Attention with --no-build-isolation
-#   pip install flash-attn==2.5.8 --no-build-isolation \
-#       --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
+#   pip install flash-attn --no-build-isolation
 #   python -c "import flash_attn; print('✅ Flash Attention installed')"
 #
 #   # Stage 4: Everything else
@@ -57,15 +55,16 @@
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-# 1. PYTORCH STACK - CUDA 12.1 (H100 Compatible) - INSTALL FIRST
+# 1. PYTORCH STACK - CUDA 12.4 (H100 Compatible) - INSTALL FIRST
 # ----------------------------------------------------------------------------
 # Install from official PyTorch wheel repository
-# CUDA 12.1 is optimal for H100 80GB
---extra-index-url https://download.pytorch.org/whl/cu121
-
-torch==2.3.1+cu121
-torchvision==0.18.1+cu121
-torchaudio==2.3.1+cu121
+# CUDA 12.4 is the latest stable version for H100
+# NOTE: These should be installed in Stage 1 (see installation sequence above)
+# Uncomment and use these if installing manually:
+# --index-url https://download.pytorch.org/whl/cu124
+# torch (latest for cu124)
+# torchvision (latest for cu124)
+# torchaudio (latest for cu124)
 
 # ----------------------------------------------------------------------------
 # 2. FLASH ATTENTION 2 - MUST BE INSTALLED SEPARATELY
@@ -74,9 +73,8 @@ torchaudio==2.3.1+cu121
 # Flash Attention's build system imports torch during setup.py execution
 # Must use --no-build-isolation flag (cannot be specified in requirements.txt)
 # 
-# MANUAL INSTALLATION REQUIRED:
-#   pip install flash-attn==2.5.8 --no-build-isolation \
-#       --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
+# MANUAL INSTALLATION REQUIRED (Stage 3):
+#   pip install flash-attn --no-build-isolation
 #
 # See installation guide for correct sequence
 
@@ -112,7 +110,8 @@ datasets==2.19.1
 # xformers provides memory-efficient attention operations
 # Required by Unsloth for 2-3× speedup
 # Pre-compiled wheel for PyTorch 2.3.1 + CUDA 12.1
-xformers==0.0.26.post1
+# Note: Use flexible version constraint to avoid torch version conflicts
+xformers>=0.0.26
 
 # ----------------------------------------------------------------------------
 # 6. UNSLOTH - OPTIONAL BUT RECOMMENDED (2-3x speedup)
