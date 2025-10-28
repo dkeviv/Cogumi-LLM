@@ -4,6 +4,8 @@
 # STABLE VERSIONS WITH PRE-COMPILED WHEELS FOR H100
 # All versions verified to work together with pre-compiled binaries
 # Last verified: October 2025
+# CUDA Version: 12.4
+# PyTorch Version: 2.8.0+cu124
 # ============================================================================
 
 # ============================================================================
@@ -22,7 +24,8 @@
 #
 # INSTALLATION SEQUENCE FOR CUDA 12.4:
 #
-#   # Stage 1: PyTorch first (CUDA 12.4)
+#   # Stage 1: PyTorch first (CUDA 12.4) - CLEAN INSTALL
+#   pip uninstall torch torchvision torchaudio -y
 #   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 #   python -c "import torch; print(f'✅ PyTorch {torch.__version__} installed')"
 #
@@ -41,10 +44,11 @@
 
 # ============================================================================
 # CORE PRINCIPLE: Use STABLE versions with pre-compiled wheels
-# - PyTorch 2.3.1 (NOT 2.8.0 which doesn't exist)
-# - Flash Attention 2.5.8 with official pre-compiled wheels
+# - PyTorch 2.8.0+cu124 (latest stable for CUDA 12.4)
+# - Flash Attention 2.x (auto-selected for CUDA 12.4)
+# - xformers 0.0.32+ (memory-efficient attention, required by Unsloth)
 # - Transformers 4.43.3 (stable, Llama 3.1 support)
-# - Unsloth library support (NOT pre-quantized base)
+# - Unsloth July-2024 (2-3× training speedup)
 # ============================================================================
 
 # ============================================================================
@@ -59,12 +63,9 @@
 # ----------------------------------------------------------------------------
 # Install from official PyTorch wheel repository
 # CUDA 12.4 is the latest stable version for H100
+# Latest versions: PyTorch 2.8.0, torchvision 0.20.0, torchaudio 2.6.0
 # NOTE: These should be installed in Stage 1 (see installation sequence above)
-# Uncomment and use these if installing manually:
-# --index-url https://download.pytorch.org/whl/cu124
-# torch (latest for cu124)
-# torchvision (latest for cu124)
-# torchaudio (latest for cu124)
+# Command: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # ----------------------------------------------------------------------------
 # 2. FLASH ATTENTION 2 - MUST BE INSTALLED SEPARATELY
@@ -109,7 +110,8 @@ datasets==2.19.1
 # ----------------------------------------------------------------------------
 # xformers provides memory-efficient attention operations
 # Required by Unsloth for 2-3× speedup
-# Pre-compiled wheel for PyTorch 2.3.1 + CUDA 12.1
+# Pre-compiled wheel for PyTorch 2.8.0 + CUDA 12.4
+# Latest compatible version: 0.0.32.post2 (auto-selected by pip)
 # Note: Use flexible version constraint to avoid torch version conflicts
 xformers>=0.0.26
 

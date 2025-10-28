@@ -170,12 +170,15 @@ pip install --upgrade pip setuptools wheel
 
 **Stage 1: Install PyTorch first (required by Flash Attention)**
 ```bash
+# CLEAN INSTALL: First uninstall any existing PyTorch packages
+pip uninstall torch torchvision torchaudio -y
+
 # Install latest PyTorch with CUDA 12.4 support (for H100)
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # Verify PyTorch installed and importable
 python -c "import torch; print(f'✅ PyTorch {torch.__version__} installed')"
-# Expected: ✅ PyTorch 2.x.x+cu124 installed
+# Expected: ✅ PyTorch 2.8.0+cu124 installed
 ```
 
 **Stage 2: Install psutil (required by Flash Attention's setup.py)**
@@ -207,7 +210,7 @@ pip install -r requirements-stable-precompiled.txt
 
 # This will install:
 # - Transformers 4.43.3 (10 sec)
-# - xformers 0.0.26.post1 (required by Unsloth) (20 sec)
+# - xformers 0.0.32+ (required by Unsloth) (20 sec)
 # - Unsloth July-2024 (30 sec)
 # - NumPy 1.26.4 (5 sec)
 # - All other dependencies (2-3 min)

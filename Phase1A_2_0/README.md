@@ -72,6 +72,8 @@ source venv_phase1a_2_0/bin/activate
 pip install --upgrade pip setuptools wheel
 
 # 3. Install PyTorch FIRST (required by Flash Attention) - CUDA 12.4
+# CLEAN INSTALL: Uninstall any existing PyTorch first
+pip uninstall torch torchvision torchaudio -y
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # 4. Install psutil (required by Flash Attention's setup.py)
@@ -87,6 +89,13 @@ pip install -r requirements-stable-precompiled.txt
 python scripts/verify_environment.py
 # Expected: Configuration Score: 90-100%
 ```
+
+**Installed Versions (CUDA 12.4)**:
+- PyTorch: 2.8.0+cu124
+- xformers: 0.0.32.post2
+- Flash Attention: Latest compatible (2.x)
+- Transformers: 4.43.3
+- Unsloth: July-2024
 
 **Why --no-build-isolation?** Flash Attention's setup.py imports both torch AND psutil. pip's default build isolation prevents access to installed packages. The --no-build-isolation flag disables this, allowing Flash Attention to import dependencies during build.
 
