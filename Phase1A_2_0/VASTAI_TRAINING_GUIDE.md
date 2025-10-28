@@ -166,7 +166,7 @@ pip install --upgrade pip setuptools wheel
 
 #### Step 3.3: Install Dependencies in Stages (5-10 minutes)
 
-**CRITICAL**: Install in 3 stages to avoid Flash Attention build errors
+**CRITICAL**: Install in 4 stages to avoid Flash Attention build errors
 
 **Stage 1: Install PyTorch first (required by Flash Attention)**
 ```bash
@@ -179,10 +179,20 @@ python -c "import torch; print(f'✅ PyTorch {torch.__version__} installed')"
 # Expected: ✅ PyTorch 2.3.1+cu121 installed
 ```
 
-**Stage 2: Install Flash Attention with --no-build-isolation**
+**Stage 2: Install psutil (required by Flash Attention's setup.py)**
+```bash
+# Flash Attention's setup.py imports psutil during build
+pip install psutil==5.9.8
+
+# Verify psutil installed
+python -c "import psutil; print('✅ psutil installed')"
+# Expected: ✅ psutil installed
+```
+
+**Stage 3: Install Flash Attention with --no-build-isolation**
 ```bash
 # CRITICAL: Use --no-build-isolation flag
-# This allows Flash Attention's setup.py to import torch
+# This allows Flash Attention's setup.py to import torch and psutil
 pip install flash-attn==2.5.8 --no-build-isolation \
     --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
 
@@ -191,7 +201,7 @@ python -c "import flash_attn; print('✅ Flash Attention installed')"
 # Expected: ✅ Flash Attention installed
 ```
 
-**Stage 3: Install everything else**
+**Stage 4: Install everything else**
 ```bash
 # Now install all other dependencies
 pip install -r requirements-stable-precompiled.txt
@@ -202,13 +212,13 @@ pip install -r requirements-stable-precompiled.txt
 # - NumPy 1.26.4 (5 sec)
 # - All other dependencies (2-3 min)
 
-# Expected total time: 5-10 minutes for all 3 stages
+# Expected total time: 5-10 minutes for all 4 stages
 ```
 
-**Why 3 stages?**
-1. **Flash Attention IMPORTS torch** during setup.py execution (not just checks if installed)
+**Why 4 stages?**
+1. **Flash Attention IMPORTS torch AND psutil** during setup.py execution (not just checks if installed)
 2. **pip's build isolation** creates a clean environment that doesn't have access to installed packages
-3. **--no-build-isolation** flag disables this isolation, allowing Flash Attention to import torch
+3. **--no-build-isolation** flag disables this isolation, allowing Flash Attention to import dependencies
 4. **This flag cannot be specified in requirements.txt**, must be done manually
 
 #### Step 3.4: Verify Installation

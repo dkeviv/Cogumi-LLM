@@ -7,28 +7,38 @@
 # ============================================================================
 
 # ============================================================================
-# ⚠️  INSTALLATION WARNING - READ BEFORE INSTALLING ⚠️
+# ⚠️  INSTALLATION WARNING - 4-STAGE INSTALLATION REQUIRED
 # ============================================================================
-# DO NOT install with: pip install -r requirements-stable-precompiled.txt ONLY
-# 
-# CORRECT 3-STAGE INSTALLATION (to avoid Flash Attention build errors):
+# Stage 1: Install PyTorch first
+# Stage 2: Install psutil (required by Flash Attention's setup.py)
+# Stage 3: Install Flash Attention with --no-build-isolation flag
+# Stage 4: Install everything else from this file
 #
-# Stage 1: Install PyTorch FIRST
+# Why 4 stages?
+# 1. Flash Attention's setup.py IMPORTS torch AND psutil during build metadata generation
+# 2. pip's build isolation creates a clean environment without installed packages
+# 3. --no-build-isolation disables isolation, allowing Flash Attention to import dependencies
+# 4. This flag cannot be specified in requirements.txt, must be done manually
+#
+# INSTALLATION SEQUENCE:
+#
+#   # Stage 1: PyTorch first
 #   pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
 #       --extra-index-url https://download.pytorch.org/whl/cu121
+#   python -c "import torch; print(f'✅ PyTorch {torch.__version__} installed')"
 #
-# Stage 2: Install Flash Attention with --no-build-isolation
+#   # Stage 2: psutil (required by Flash Attention)
+#   pip install psutil==5.9.8
+#   python -c "import psutil; print('✅ psutil installed')"
+#
+#   # Stage 3: Flash Attention with --no-build-isolation
 #   pip install flash-attn==2.5.8 --no-build-isolation \
 #       --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
+#   python -c "import flash_attn; print('✅ Flash Attention installed')"
 #
-# Stage 3: Install everything else
+#   # Stage 4: Everything else
 #   pip install -r requirements-stable-precompiled.txt
 #
-# Why 3 stages?
-# 1. Flash Attention IMPORTS torch during setup.py (not just checks if installed)
-# 2. pip's build isolation creates a clean environment without installed packages
-# 3. --no-build-isolation lets Flash Attention access the installed PyTorch
-# 4. This cannot be specified in requirements.txt, must be done manually
 # ============================================================================
 
 # ============================================================================
