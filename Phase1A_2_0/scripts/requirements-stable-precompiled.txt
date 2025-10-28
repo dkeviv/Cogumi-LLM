@@ -107,15 +107,24 @@ trl==0.9.6
 datasets==2.19.1
 
 # ----------------------------------------------------------------------------
-# 5. UNSLOTH - OPTIONAL BUT RECOMMENDED (2-3x speedup)
+# 5. XFORMERS - REQUIRED BY UNSLOTH
+# ----------------------------------------------------------------------------
+# xformers provides memory-efficient attention operations
+# Required by Unsloth for 2-3× speedup
+# Pre-compiled wheel for PyTorch 2.3.1 + CUDA 12.1
+xformers==0.0.26.post1
+
+# ----------------------------------------------------------------------------
+# 6. UNSLOTH - OPTIONAL BUT RECOMMENDED (2-3x speedup)
 # ----------------------------------------------------------------------------
 # Use git version for compatibility (July-2024 tag is stable)
 # This provides Unsloth library WITHOUT pre-quantized base
 # IMPORTANT: Use with full precision meta-llama/Meta-Llama-3.1-8B-Instruct
+# REQUIRES: xformers (installed above)
 unsloth @ git+https://github.com/unslothai/unsloth.git@July-2024
 
 # ----------------------------------------------------------------------------
-# 6. SUPPORTING LIBRARIES
+# 7. SUPPORTING LIBRARIES
 # ----------------------------------------------------------------------------
 # NumPy 1.26.4 (CRITICAL - NOT 2.0+, breaks scipy/sklearn)
 numpy==1.26.4
@@ -145,7 +154,7 @@ ninja==1.11.1
 packaging==24.0
 
 # ----------------------------------------------------------------------------
-# 7. JUPYTER SUPPORT (Optional)
+# 8. JUPYTER SUPPORT (Optional)
 # ----------------------------------------------------------------------------
 ipykernel==6.29.4
 jupyter==1.0.0

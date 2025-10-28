@@ -208,6 +208,7 @@ pip install -r requirements-stable-precompiled.txt
 
 # This will install:
 # - Transformers 4.43.3 (10 sec)
+# - xformers 0.0.26.post1 (required by Unsloth) (20 sec)
 # - Unsloth July-2024 (30 sec)
 # - NumPy 1.26.4 (5 sec)
 # - All other dependencies (2-3 min)
@@ -227,6 +228,7 @@ pip install -r requirements-stable-precompiled.txt
 |-------|-------|----------|
 | `ModuleNotFoundError: No module named 'torch'` | Flash Attention can't find torch in build isolation | Use `--no-build-isolation` flag (Stage 3) |
 | `ModuleNotFoundError: No module named 'psutil'` | Flash Attention needs psutil during build | Install psutil first (Stage 2) |
+| `ModuleNotFoundError: No module named 'xformers'` | Unsloth requires xformers for speedup | Already fixed in requirements (includes xformers 0.0.26.post1) |
 | `ResolutionImpossible: huggingface-hub==0.23.0` | transformers 4.43.3 requires >=0.23.2 | Already fixed in requirements (uses 0.23.4) |
 | `git checkout -q 2024.7 did not match` | Unsloth uses month-name tags | Already fixed in requirements (uses July-2024) |
 
