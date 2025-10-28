@@ -63,13 +63,24 @@ fi
 
 # Verify Phase 1B.1 model exists
 echo "📋 Step 1: Verifying Phase 1B.1 model..."
-PHASE1B1_MODEL="checkpoints/phase1b_from_benchmark"
-if [ ! -d "$PHASE1B1_MODEL" ]; then
-    echo "❌ Error: Phase 1B.1 model not found at $PHASE1B1_MODEL"
-    echo "Run Phase 1B.1 training first"
+
+# Check for losses_only version first (corrected training), fall back to original
+if [ -d "checkpoints/phase1b_losses_only" ]; then
+    PHASE1B1_MODEL="checkpoints/phase1b_losses_only"
+    echo "✅ Using Phase 1B.1 (losses only - corrected): $PHASE1B1_MODEL"
+elif [ -d "checkpoints/phase1b_from_benchmark" ]; then
+    PHASE1B1_MODEL="checkpoints/phase1b_from_benchmark"
+    echo "⚠️  Using Phase 1B.1 (original - may have catastrophic forgetting): $PHASE1B1_MODEL"
+else
+    echo "❌ Error: Phase 1B.1 model not found"
+    echo "Looking for:"
+    echo "  - checkpoints/phase1b_losses_only (preferred)"
+    echo "  - checkpoints/phase1b_from_benchmark (fallback)"
+    echo ""
+    echo "Run Phase 1B.1 training first:"
+    echo "  bash scripts/run_phase1b_losses_only.sh"
     exit 1
 fi
-echo "✅ Phase 1B.1 model found"
 
 # Verify Phase 1A results exist (CRITICAL - need GPT-4 responses!)
 echo ""

@@ -43,14 +43,33 @@ else
 fi
 
 # Navigate to project root
-cd /workspace/data/Cogumi-LLM 2>/dev/null || cd ~/Cogumi-LLM 2>/dev/null || echo "Already in project directory"
+if [ -d "/workspace/data/Cogumi-LLM" ]; then
+    cd /workspace/data/Cogumi-LLM
+    echo "✅ Changed to: /workspace/data/Cogumi-LLM"
+elif [ -d "$HOME/Cogumi-LLM" ]; then
+    cd "$HOME/Cogumi-LLM"
+    echo "✅ Changed to: $HOME/Cogumi-LLM"
+else
+    echo "✅ Already in project directory: $(pwd)"
+fi
 
 # Verify filtered data exists
+echo "🔍 Checking for filtered data..."
+echo "Current directory: $(pwd)"
+echo "Files in training_from_benchmark:"
+ls -lh data/phase1/training_from_benchmark/ 2>/dev/null || echo "Directory not found!"
+echo ""
+
 if [ ! -f "data/phase1/training_from_benchmark/math_losses_only.jsonl" ]; then
-    echo "❌ Filtered data not found! Run: python scripts/filter_true_losses.py"
+    echo "❌ Filtered data not found!"
+    echo "Looking for: data/phase1/training_from_benchmark/math_losses_only.jsonl"
+    echo ""
+    echo "Please run: python scripts/filter_true_losses.py"
     exit 1
 fi
 
+echo "✅ Filtered data found!"
+echo ""
 echo "📊 Dataset Statistics:"
 echo "-------------------------------------------"
 wc -l data/phase1/training_from_benchmark/*_losses_only.jsonl
