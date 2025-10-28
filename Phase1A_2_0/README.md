@@ -71,13 +71,19 @@ source venv_phase1a_2_0/bin/activate
 # 2. Upgrade pip
 pip install --upgrade pip setuptools wheel
 
-# 3. Install all dependencies (pre-compiled wheels)
+# 3. Install PyTorch FIRST (required by Flash Attention)
+pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
+    --extra-index-url https://download.pytorch.org/whl/cu121
+
+# 4. Install all other dependencies (pre-compiled wheels)
 pip install -r requirements-stable-precompiled.txt
 
-# 4. Verify installation
+# 5. Verify installation
 python scripts/verify_environment.py
 # Expected: Configuration Score: 90-100%
 ```
+
+**Why install PyTorch first?** Flash Attention's build system needs PyTorch installed to find pre-compiled wheels.
 
 ### Manual Installation (if automated fails)
 ```bash

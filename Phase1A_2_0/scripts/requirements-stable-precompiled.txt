@@ -7,6 +7,24 @@
 # ============================================================================
 
 # ============================================================================
+# ⚠️  INSTALLATION WARNING - READ BEFORE INSTALLING ⚠️
+# ============================================================================
+# DO NOT install with: pip install -r requirements-stable-precompiled.txt
+# 
+# CORRECT 2-STAGE INSTALLATION (to avoid Flash Attention build errors):
+#
+# Stage 1: Install PyTorch FIRST
+#   pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
+#       --extra-index-url https://download.pytorch.org/whl/cu121
+#
+# Stage 2: Install everything else
+#   pip install -r requirements-stable-precompiled.txt
+#
+# Why? Flash Attention's build system needs PyTorch installed to find
+# pre-compiled wheels. Without PyTorch, it tries to build from source and fails.
+# ============================================================================
+
+# ============================================================================
 # CORE PRINCIPLE: Use STABLE versions with pre-compiled wheels
 # - PyTorch 2.3.1 (NOT 2.8.0 which doesn't exist)
 # - Flash Attention 2.5.8 with official pre-compiled wheels
@@ -14,8 +32,15 @@
 # - Unsloth library support (NOT pre-quantized base)
 # ============================================================================
 
+# ============================================================================
+# INSTALLATION ORDER CRITICAL:
+# 1. PyTorch first (required by Flash Attention build system)
+# 2. Flash Attention (pre-compiled, needs PyTorch installed)
+# 3. Everything else (transformers, bitsandbytes, etc.)
+# ============================================================================
+
 # ----------------------------------------------------------------------------
-# 1. PYTORCH STACK - CUDA 12.1 (H100 Compatible)
+# 1. PYTORCH STACK - CUDA 12.1 (H100 Compatible) - INSTALL FIRST
 # ----------------------------------------------------------------------------
 # Install from official PyTorch wheel repository
 # CUDA 12.1 is optimal for H100 80GB
@@ -26,11 +51,12 @@ torchvision==0.18.1+cu121
 torchaudio==2.3.1+cu121
 
 # ----------------------------------------------------------------------------
-# 2. FLASH ATTENTION 2 - PRE-COMPILED WHEELS (CRITICAL!)
+# 2. FLASH ATTENTION 2 - PRE-COMPILED WHEELS (REQUIRES PYTORCH INSTALLED)
 # ----------------------------------------------------------------------------
 # Official pre-compiled wheels from Flash Attention team
 # MUST match PyTorch version (2.3.x) and CUDA version (12.1)
 # Installs in 10 seconds vs 5-10 minutes compilation
+# CRITICAL: PyTorch must be installed first (above)
 --extra-index-url https://flashattn.github.io/whl/cu121/torch2.3/
 
 flash-attn==2.5.8

@@ -164,21 +164,38 @@ python --version
 pip install --upgrade pip setuptools wheel
 ```
 
-#### Step 3.3: Install Dependencies (5-10 minutes)
+#### Step 3.3: Install Dependencies in Stages (5-10 minutes)
+
+**CRITICAL**: Install in 2 stages to avoid Flash Attention build errors
+
+**Stage 1: Install PyTorch first (required by Flash Attention)**
 ```bash
-# Install from pre-compiled requirements
+# Install PyTorch 2.3.1 with CUDA 12.1 support
+pip install torch==2.3.1+cu121 torchvision==0.18.1+cu121 torchaudio==2.3.1+cu121 \
+    --extra-index-url https://download.pytorch.org/whl/cu121
+
+# Verify PyTorch installed
+python -c "import torch; print(f'PyTorch {torch.__version__} installed')"
+# Expected: PyTorch 2.3.1+cu121 installed
+```
+
+**Stage 2: Install everything else (including Flash Attention)**
+```bash
+# Now install all other dependencies
 pip install -r requirements-stable-precompiled.txt
 
 # This will install:
-# - PyTorch 2.3.1+cu121 (30 sec)
 # - Flash Attention 2.5.8 from pre-compiled wheel (10 sec)
 # - Transformers 4.43.3 (10 sec)
 # - Unsloth July-2024 (30 sec)
 # - NumPy 1.26.4 (5 sec)
 # - All other dependencies (2-3 min)
 
-# Expected total time: 5-10 minutes
+# Expected total time: 5-10 minutes for both stages
 ```
+
+**Why 2 stages?**
+Flash Attention's build system checks for PyTorch during wheel metadata generation. Installing PyTorch first ensures Flash Attention finds the pre-compiled wheel instead of trying to build from source.
 
 #### Step 3.4: Verify Installation
 ```bash
