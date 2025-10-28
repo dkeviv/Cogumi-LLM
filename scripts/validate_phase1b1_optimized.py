@@ -74,25 +74,48 @@ class OptimizedPhase1BValidator:
         
         # Check if this is a LoRA adapter or full model
         adapter_config = Path(phase1b_model_path) / "adapter_config.json"
+        merged_model_path = Path(phase1b_model_path).parent / f"{Path(phase1b_model_path).name}_merged"
         
         if adapter_config.exists():
-            # This is a LoRA adapter - need to load base model + adapter
-            print("   Detected LoRA adapter, loading base model + adapter...")
-            with open(adapter_config) as f:
-                config = json.load(f)
-                base_model_path = config.get("base_model_name_or_path", "unsloth/meta-llama-3.1-8b-instruct-bnb-4bit")
-            
-            print(f"   Loading base model: {base_model_path}")
-            base_model = AutoModelForCausalLM.from_pretrained(
-                base_model_path,
-                torch_dtype=torch.float16,
-                device_map="auto",
-                load_in_4bit=True
-            )
-            
-            print(f"   Loading adapter: {phase1b_model_path}")
-            self.model = PeftModel.from_pretrained(base_model, phase1b_model_path)
-            self.tokenizer = AutoTokenizer.from_pretrained(phase1b_model_path)
+            # This is a LoRA adapter - check if merged version exists
+            if merged_model_path.exists():
+                print(f"   Found merged model at: {merged_model_path}")
+                print("   Loading merged model (faster)...")
+                self.tokenizer = AutoTokenizer.from_pretrained(str(merged_model_path))
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    str(merged_model_path),
+                    torch_dtype=torch.float16,
+                    device_map="auto"
+                )
+            else:
+                # Need to merge adapter with base model
+                print("   Detected LoRA adapter, will merge with base model...")
+                with open(adapter_config) as f:
+                    config = json.load(f)
+                    base_model_path_str = config.get("base_model_name_or_path", "unsloth/meta-llama-3.1-8b-instruct-bnb-4bit")
+                
+                print(f"   Loading base model: {base_model_path_str}")
+                base_model = AutoModelForCausalLM.from_pretrained(
+                    base_model_path_str,
+                    load_in_4bit=True,
+                    device_map="auto",
+                    max_memory={0: "22GB"}  # Leave some headroom
+                )
+                
+                print(f"   Loading adapter: {phase1b_model_path}")
+                peft_model = PeftModel.from_pretrained(base_model, phase1b_model_path)
+                
+                print("   Merging adapter with base model...")
+                self.model = peft_model.merge_and_unload()
+                
+                # Save merged model for future use
+                print(f"   Saving merged model to: {merged_model_path}")
+                merged_model_path.mkdir(parents=True, exist_ok=True)
+                self.model.save_pretrained(str(merged_model_path))
+                
+                self.tokenizer = AutoTokenizer.from_pretrained(phase1b_model_path)
+                self.tokenizer.save_pretrained(str(merged_model_path))
+                print("   ✅ Merged model saved for future runs!")
         else:
             # This is a full merged model
             print("   Loading full model...")
