@@ -173,10 +173,11 @@ pip list | grep -E "transformers|peft|torch|datasets"
 ### Components
 
 #### 1. Base Model (520MB)
-- **Student:** LLAMA-3.2-8B (trimmed vocab: 128K → 25K tokens)
-- **Training:** QLoRA on 640,637 English examples from multi-teacher distillation
+- **Student:** LLAMA-3.1-8B-Instruct (full 128K vocabulary preserved)
+- **Training:** Full precision bfloat16 LoRA on 600K English examples from multi-teacher distillation
 - **Compression:** Neural Magic (65% sparsity) → AWQ 4-bit → GGUF Q5_K_M → Zstd
 - **Performance:** 89-91% GPT-4 (general tasks)
+- **Note:** ⚠️ Vocabulary NOT trimmed - implicit compression via pruning/quantization (see [technical_specification.md](docs/technical_specification.md))
 
 #### 2. Domain Modifiers (135MB total)
 - **Code Modifier (47MB):** 115-130% GPT-4 on HumanEval, MBPP
@@ -426,7 +427,7 @@ Add 5 more modifiers (Math, Hard Math, Science, Finance, Creative):
 We welcome contributions! See areas needing help:
 
 ### High Priority
-- [ ] Phase 1 script implementation (vocabulary trimming, failure clustering)
+- [ ] Phase 1 script implementation (failure clustering automation)
 - [ ] Phase 2 compression pipeline automation
 - [ ] Router training data collection
 
