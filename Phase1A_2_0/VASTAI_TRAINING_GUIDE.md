@@ -297,24 +297,109 @@ python verify_h100_environment.py
 
 # Expected output:
 # ================================================================================
-# ENVIRONMENT VERIFICATION COMPLETE
+# CONFIGURATION SUMMARY
 # ================================================================================
 # 
-# Configuration Score: 95/100 (EXCELLENT)
+# Configuration Score: 39/39 (100.0%)
 # 
-# ✅ All critical components installed
-# ✅ H100 GPU detected
-# ✅ Flash Attention available
-# ✅ Ready for training
+# ✅ EXCELLENT - Optimal configuration for H100 training
+#    Expected performance: 4-6× faster than baseline
+#    Estimated cost: $20-30 for full Phase 1A training
+# ================================================================================
 ```
 
-**If score < 90%**: Check output for specific issues and fix before proceeding
+**Expected Warnings (SAFE TO IGNORE)**:
+
+During verification, you'll see these warnings - they are **cosmetic only** and do not affect functionality:
+
+1. **Unsloth: "Flash Attention installation seems broken?"**
+   - ✅ Ignore this. Flash Attention IS working (verified in functional tests)
+   - Unsloth shows this warning when detecting version mismatches, but FA is still functional
+   - Verification confirms: "✅ Flash Attention: Functional (1.5× speedup enabled)"
+
+2. **xFormers: "Can't load C++/CUDA extensions"**
+   - ✅ Expected. Flash Attention is the primary accelerator (working correctly)
+   - xformers is secondary fallback, FA provides full 1.5× speedup
+
+3. **FutureWarning: torch.cuda.amp deprecation**
+   - ✅ Deprecation notices from Unsloth kernels
+   - No impact on functionality or performance
+
+**Configuration Score: 100% = Ready to Train** ✅
+
+**If score < 90%**: Check output for actual errors (not warnings) and fix before proceeding
 
 ---
 
-### Phase 4: Data Optimization (15-20 minutes)
+### Phase 4: HuggingFace Setup (2 minutes)
 
-#### Step 4.1: Copy Dataset to Local NVMe (CRITICAL for 20-30% speedup)
+#### Step 4.1: Login to HuggingFace (REQUIRED for Llama models)
+
+**IMPORTANT:** HuggingFace Hub CLI is already installed with the golden configuration. DO NOT reinstall or upgrade it.
+
+**Method 1: Using CLI (Recommended)**
+```bash
+# Login with your HuggingFace token (CLI already installed in golden config)
+huggingface-cli login
+# When prompted: "Token: " paste your token and press Enter
+# Token can be created at: https://huggingface.co/settings/tokens
+
+# Verify login
+huggingface-cli whoami
+# Expected: Your HuggingFace username
+```
+
+**Method 2: Using Python (Alternative)**
+```bash
+# Run this Python command to login
+python -c "from huggingface_hub import login; login()"
+# When prompted: "Token: " paste your token and press Enter
+```
+
+**Method 3: Direct token in environment (Quick)**
+```bash
+# Set your HuggingFace token as environment variable
+export HF_TOKEN="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Add to ~/.bashrc or ~/.zshrc to persist across sessions
+echo 'export HF_TOKEN="hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**⚠️ If you accidentally upgraded huggingface-hub (dependency conflict):**
+```bash
+# First, reinstall golden config transformers version
+pip install transformers==4.43.3 --force-reinstall
+
+# Then downgrade huggingface-hub to compatible version
+pip install huggingface-hub==0.23.4 --force-reinstall
+
+# Verify versions
+python -c "import huggingface_hub, transformers; print(f'huggingface-hub: {huggingface_hub.__version__}'); print(f'transformers: {transformers.__version__}')"
+# Expected: huggingface-hub: 0.23.4, transformers: 4.43.3
+```
+
+**Why this is required:**
+- ✅ Llama 3.1 models are gated and require authentication
+- ✅ You must accept the license at: https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct
+- ✅ Without authentication, model download will fail
+
+**Get Your HuggingFace Token:**
+1. Go to https://huggingface.co/settings/tokens
+2. Create a new token (or use existing) with "Read access to contents of all public gated repos"
+3. Copy the token (starts with "hf_")
+4. Use in one of the methods above
+
+**Accept Llama 3.1 License:**
+1. Visit: https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct
+2. Click "Agree and access repository"
+3. Wait for approval (usually instant if you have valid token)
+
+---
+
+### Phase 5: Data Optimization (15-20 minutes)
+
+#### Step 5.1: Copy Dataset to Local NVMe (CRITICAL for 20-30% speedup)
 ```bash
 # Copy to /tmp (fast local storage, NOT network storage)
 cp ../data/public_500k_filtered.jsonl /tmp/dataset.jsonl
@@ -329,9 +414,10 @@ ls -lh /tmp/dataset.jsonl
 - ❌ Network/persistent storage is slow (bottleneck)
 - 📊 Result: 20-30% I/O speedup
 
-#### Step 4.2: Optional - Pre-tokenize Dataset (10-15 minutes, 5-10% speedup)
+#### Step 5.2: Optional - Pre-tokenize Dataset (10-15 minutes, 5-10% speedup)
 ```bash
 # Pre-tokenize to local storage
+# NOTE: HuggingFace authentication must be set up first (see Phase 4)
 python pretokenize_dataset.py \
     --input /tmp/dataset.jsonl \
     --output /tmp/tokenized_dataset \
@@ -350,13 +436,14 @@ ls -lh /tmp/tokenized_dataset/
 
 ---
 
-### Phase 5: Training (8-12 hours)
+### Phase 6: Training (8-12 hours)
 
-#### Step 5.1: Start Training
+#### Step 6.1: Start Training
 
 **Option A: Without Pre-tokenization**
 ```bash
 # Start training
+# NOTE: HuggingFace authentication must be set up first (see Phase 4)
 python train_phase1a_optimized_h100.py \
     --model_name "meta-llama/Meta-Llama-3.1-8B-Instruct" \
     --dataset_path "/tmp/dataset.jsonl" \
@@ -434,11 +521,12 @@ Phase1A_2_0/data/checkpoints/
 
 ---
 
-### Phase 6: Post-Training - Merge & Save (30 minutes)
+### Phase 7: Post-Training - Merge & Save (30 minutes)
 
-#### Step 6.1: Merge Adapter to Base Model
+#### Step 7.1: Merge Adapter to Base Model
 ```bash
 # After training completes, merge adapter
+# NOTE: HuggingFace authentication must be set up first (see Phase 4)
 python merge_adapter_fullprecision.py \
     --base_model "meta-llama/Meta-Llama-3.1-8B-Instruct" \
     --adapter_path "/workspace/Cogumi-LLM/Phase1A_2_0/data/checkpoints/checkpoint-28000" \

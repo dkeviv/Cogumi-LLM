@@ -532,79 +532,161 @@ python src/phase1_base/label_clusters.py \
 **Cost:** $5 (compute + GPT-4-mini)  
 **Output:** 8-12 labeled failure patterns
 
-#### Week 3-4: GPT-5 Data Generation (Phase 1C)
-```bash
-# Generate Claude 4.5 script for targeted data generation
-# Prompt: "Generate script to create GPT-5 examples targeting specific failure patterns"
+#### Week 3-4: GPT-5 Targeted Data Generation (Phase 1C)
 
-# 1. Generate prompts for each failure pattern
-python src/phase1_base/generate_prompts.py \
+**Strategy:** Use GitHub Copilot to generate failure-aware examples at zero API cost
+- Claude Sonnet 4.5 for code examples
+- GPT-5 for reasoning/math/general examples
+- Bidirectional training (doubles dataset to 80K)
+
+##### Step 1: Split Failures by Domain (Day 1)
+```bash
+# Analyze failure clusters and split by code vs non-code
+python src/phase1_base/split_failures.py \
   --patterns results/failure_patterns.json \
-  --examples-per-pattern 4000 \
-  --output data/phase1c/generation_prompts.jsonl
+  --output-code data/phase1c/code_failures.jsonl \
+  --output-other data/phase1c/other_failures.jsonl
 
-# 2. Call GPT-5 API for generation
-python src/phase1_base/generate_gpt5_data.py \
-  --prompts data/phase1c/generation_prompts.jsonl \
-  --model gpt-5 \
-  --output data/phase1c/gpt5_raw_45k.jsonl \
-  --parallel-requests 20
-
-# This will take 3-4 days and cost ~$280
+# Expected split:
+# Code failures: ~30% (4K failures) → 12K examples needed
+# Other failures: ~70% (10K failures) → 28K examples needed
 ```
 
-**Expected Time:** 4 days  
-**Cost:** $280 (GPT-5 generation)  
-**Output:** 40K-45K raw GPT-5 examples
-
-#### Week 4, Day 1-2: Quality Filtering
+##### Step 2: Generate Code Examples via Copilot (Claude 4.5) (Day 2-3)
 ```bash
-# Generate Claude 4.5 script for quality scoring
-# Prompt: "Generate script to score examples with GPT-4-mini, keep >8/10"
+# Use GitHub Copilot Chat with Claude Sonnet 4.5
+# Interactive prompt for EACH code failure cluster:
 
-python src/phase1_base/score_examples.py \
-  --examples data/phase1c/gpt5_raw_45k.jsonl \
-  --model gpt-4-mini \
-  --threshold 8.0 \
-  --output data/phase1c/gpt5_filtered_40k.jsonl
+"""
+You are generating training examples to fix specific code weaknesses.
 
-# Cost: $5 for GPT-4-mini scoring
+**Failure Pattern:** {cluster_label}
+**Failed Examples:**
+{show 5 actual code failures from cluster}
+
+**Task:** Generate {n} NEW code examples that:
+1. Target this EXACT failure pattern
+2. Are HARDER than the failed examples (increase complexity)
+3. Include edge cases (null checks, boundary conditions, type mismatches)
+4. Test deep algorithmic understanding, not surface patterns
+5. Show complete working solutions with explanations
+
+**Output Format:**
+```json
+{
+  "instruction": "[challenging coding problem targeting this weakness]",
+  "response": "[complete solution with step-by-step explanation]"
+}
 ```
 
-**Expected Time:** 2 days  
-**Cost:** $5 (GPT-4-mini scoring)  
-**Output:** 40K high-quality GPT-5 examples
+Generate examples one by one. After each, self-critique:
+- Is it harder than the failures shown?
+- Does it truly test the failure pattern?
+- Are there more edge cases to add?
+"""
 
-#### Week 4, Day 3-7: Distillation Training
+# Process Copilot output → save to data/phase1c/code_12k.jsonl
+# Cost: $0 (Copilot subscription)
+```
+
+**Expected Time:** 2 days (interactive with Copilot)
+**Cost:** $0 (included in Copilot subscription)
+**Output:** 12K code-focused examples
+
+##### Step 3: Generate Other Examples via Copilot (GPT-5) (Day 4-5)
 ```bash
-# 1. Update Axolotl config for distillation
-cat > configs/distillation_training.yaml << 'EOF'
-base_model: models/phase1a_merged_10gb
-# ... (similar to base_training.yaml but with modifications)
-learning_rate: 3e-6  # Lower than base training
-num_epochs: 5
-gradient_accumulation_steps: 8
-micro_batch_size: 4
+# Use GitHub Copilot Chat with GPT-5
+# Interactive prompt for EACH non-code failure cluster:
 
-datasets:
-  # 90% GPT-5 targeted data
-  - path: data/phase1c/gpt5_filtered_40k.jsonl
-    type: completion
-    weight: 0.9
-  # 10% original data (prevent forgetting)
-  - path: data/phase1/public_500k_filtered.jsonl
-    type: completion
-    weight: 0.1
+"""
+You are generating training examples to fix specific reasoning weaknesses.
 
-output_dir: data/checkpoints/phase1c_distilled
-EOF
+**Failure Pattern:** {cluster_label}
+**Failed Examples:**
+{show 5 actual failures from cluster}
 
-# 2. Train on RunPod (5 days)
-axolotl train configs/distillation_training.yaml \
-  --wandb-project cogumi-llm \
-  --wandb-run-name phase1c-distillation
+**Task:** Generate {n} NEW examples that:
+1. Target this EXACT failure pattern
+2. Are HARDER than the failed examples (increase difficulty)
+3. Include corner cases and multi-step reasoning
+4. Test deep understanding, not memorization
+5. Show detailed step-by-step solutions
 
-# 3. Merge and validate
+**Domain:** {math/reasoning/comprehension/etc based on cluster}
+
+**Output Format:**
+```json
+{
+  "instruction": "[challenging question targeting this weakness]",
+  "response": "[detailed step-by-step solution with reasoning]"
+}
+```
+
+Generate examples one by one. After each, self-critique:
+- Is it significantly harder than the failures?
+- Does it require multi-step reasoning?
+- Are there ambiguities or tricks that test understanding?
+"""
+
+# Process Copilot output → save to data/phase1c/other_28k.jsonl
+# Cost: $0 (Copilot subscription)
+```
+
+**Expected Time:** 2 days (interactive with Copilot)
+**Cost:** $0 (included in Copilot subscription)
+**Output:** 28K reasoning/math/other examples
+
+##### Step 4: Create Bidirectional Training Data (Day 6)
+```bash
+# Generate reverse examples for bidirectional training
+python src/phase1_base/create_bidirectional.py \
+  --input data/phase1c/code_12k.jsonl data/phase1c/other_28k.jsonl \
+  --output data/phase1c/bidirectional_80k.jsonl
+
+# For each example:
+# Forward: instruction → response
+# Reverse: "Given this answer: {response}\n\nWhat was the question?" → instruction
+
+# Benefits:
+# - Doubles dataset to 80K examples
+# - Improves reasoning in both directions
+# - Better understanding of causality
+```
+
+**Expected Time:** 1 day
+**Cost:** $0
+**Output:** 80K bidirectional examples (40K forward + 40K reverse)
+
+##### Step 5: Distillation Training (Day 7, ~4-5 hours)
+```bash
+# 1. Re-tokenize with bidirectional data
+python Phase1A_2_0/scripts/pretokenize_dataset.py \
+  --input data/phase1c/bidirectional_80k.jsonl \
+  --output /tmp/tokenized_phase1c \
+  --max_length 2048
+
+# 2. Train Phase 1C adapter
+python Phase1A_2_0/scripts/train_phase1a_optimized_h100.py \
+  --model_name "models/phase1a_merged_10gb" \
+  --use_pretokenized \
+  --pretokenized_path "/tmp/tokenized_phase1c" \
+  --torch_compile \
+  --output_dir "data/checkpoints/phase1c_distilled" \
+  --logging_dir "data/logs/phase1c" \
+  --num_train_epochs 3 \
+  --per_device_train_batch_size 4 \
+  --gradient_accumulation_steps 2 \
+  --learning_rate 3e-6 \
+  --dataloader_num_workers 4 \
+  --save_steps 1000 \
+  --logging_steps 10 \
+  --save_total_limit 2
+
+# Training time calculation:
+# 80K examples / 8 batch size * 3 epochs = 30K steps
+# 30K steps * 0.49s/step = 14,700s = 4.1 hours
+
+# 3. Merge adapter to base
 python src/phase1_base/merge_lora.py \
   --base models/phase1a_merged_10gb \
   --adapter data/checkpoints/phase1c_distilled/best \
@@ -622,18 +704,26 @@ python src/phase1_base/validate_base.py \
 # GSM8K: 65-75% (target: >65%, 87-100% GPT-4)
 ```
 
-**Expected Time:** 5 days (80 GPU-hours @ $1.89/hr)  
-**Cost:** $150  
+**Expected Time:** 4-5 hours (H100 SXM training)
+**Cost:** $12.50 (5 hours × $2.50/hr)
 **Output:** Enhanced 10GB base model (88-100% GPT-4 baseline)
 
+**Phase 1C Summary:**
+- ✅ 12K code examples via Copilot (Claude 4.5) - $0
+- ✅ 28K other examples via Copilot (GPT-5) - $0
+- ✅ 80K bidirectional examples total
+- ✅ Training: 4-5 hours, $12.50
+- ✅ **Total Phase 1C cost: $12.50** (vs $285 originally planned!)
+
 **Phase 1 Complete Checklist:**
-- ✅ Base model trained: 75-82% GPT-4
-- ✅ Failures identified and clustered: 12-14K in 8-12 categories
-- ✅ GPT-5 data generated and filtered: 40K examples
-- ✅ Enhanced model trained: 88-100% GPT-4
+- ✅ Base model trained: 75-82% GPT-4 (Phase 1A)
+- ✅ Failures identified and clustered: 12-14K in 8-12 categories (Phase 1B)
+- ✅ 40K targeted examples generated via Copilot at $0 cost (Phase 1C)
+- ✅ 80K bidirectional training data created (Phase 1C)
+- ✅ Enhanced model trained: 88-100% GPT-4 (Phase 1C)
 - ✅ All validation benchmarks met
 
-**Phase 1 Total: 4 weeks, $505**
+**Phase 1 Total: 4 weeks, $517.50** ($505 Phase 1A + $12.50 Phase 1C)
 
 ---
 

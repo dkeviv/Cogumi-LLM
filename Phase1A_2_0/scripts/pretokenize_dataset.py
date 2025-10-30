@@ -30,8 +30,10 @@ def main():
     parser.add_argument('--model_name', type=str, 
                        default='meta-llama/Meta-Llama-3.1-8B-Instruct',
                        help='Model name for tokenizer')
-    parser.add_argument('--max_length', type=int, default=2048,
+    parser.add_argument('--max_length', type=int, default=1024,
                        help='Maximum sequence length')
+    parser.add_argument('--pad_to_max_length', action='store_true',
+                       help='Pad all sequences to max_length (recommended for torch.compile)')
     args = parser.parse_args()
 
     print("="*80)
@@ -41,6 +43,9 @@ def main():
     print(f"Output: {args.output}")
     print(f"Model: {args.model_name}")
     print(f"Max length: {args.max_length}")
+    print(f"Padding: {'max_length (fixed)' if args.pad_to_max_length else 'dynamic (at training time)'}")
+    if args.pad_to_max_length:
+        print("  ⚙️  Fixed padding = consistent batch shapes = faster torch.compile")
     print("="*80)
     print()
 
@@ -62,7 +67,7 @@ def main():
             texts,
             truncation=True,
             max_length=args.max_length,
-            padding=False,
+            padding='max_length' if args.pad_to_max_length else False,
             return_tensors=None
         )
 

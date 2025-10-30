@@ -47,18 +47,66 @@ def copy_dataset_to_local(source_path: str, local_path: str = "/tmp/public_500k_
     return local_path
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--resume_from_checkpoint', type=str, default=None)
-    parser.add_argument('--use_pretokenized', action='store_true', 
-                       help='Use pre-tokenized dataset from /tmp/tokenized_dataset')
+    parser = argparse.ArgumentParser(description='Phase 1A Optimized H100 Training')
+    
+    # Dataset arguments
     parser.add_argument('--dataset_path', type=str, 
-                       default='/workspace/data/Cogumi-LLM/data/phase1/public_500k_filtered.jsonl',
+                       default='/workspace/Cogumi-LLM/data/phase1/public_500k_filtered.jsonl',
                        help='Path to source dataset')
+    parser.add_argument('--use_pretokenized', action='store_true', 
+                       help='Use pre-tokenized dataset')
+    parser.add_argument('--pretokenized_path', type=str,
+                       default='/tmp/tokenized_dataset',
+                       help='Path to pretokenized dataset (default: unpadded version)')
+    parser.add_argument('--use_fixed_padding', action='store_true',
+                       help='Use fixed-length padding (slower but consistent shapes)')
+    parser.add_argument('--max_length', type=int, default=2048,
+                       help='Maximum sequence length for padding')
+    
+    # Model arguments
+    parser.add_argument('--model_name', type=str, 
+                       default='meta-llama/Meta-Llama-3.1-8B-Instruct',
+                       help='HuggingFace model name')
+    parser.add_argument('--output_dir', type=str, 
+                       default='./data/checkpoints/phase1a_fullprecision_optimized',
+                       help='Output directory for checkpoints')
+    parser.add_argument('--logging_dir', type=str, 
+                       default='./data/logs',
+                       help='Directory for logs')
+    
+    # Training arguments
+    parser.add_argument('--num_train_epochs', type=int, default=3,
+                       help='Number of training epochs')
+    parser.add_argument('--per_device_train_batch_size', type=int, default=4,
+                       help='Batch size per device')
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=2,
+                       help='Gradient accumulation steps')
+    parser.add_argument('--learning_rate', type=float, default=2e-4,
+                       help='Learning rate')
+    parser.add_argument('--dataloader_num_workers', type=int, default=4,
+                       help='Number of data loading workers')
+    
+    # Checkpoint arguments
+    parser.add_argument('--save_steps', type=int, default=2000,
+                       help='Save checkpoint every N steps')
+    parser.add_argument('--logging_steps', type=int, default=10,
+                       help='Log every N steps')
+    parser.add_argument('--save_total_limit', type=int, default=3,
+                       help='Maximum number of checkpoints to keep')
+    parser.add_argument('--resume_from_checkpoint', type=str, default=None,
+                       help='Path to checkpoint to resume from')
+    
+    # Optimization arguments
+    parser.add_argument('--torch_compile', action='store_true', default=False,
+                       help='Enable torch.compile for speedup')
+    parser.add_argument('--no_torch_compile', dest='torch_compile', action='store_false',
+                       help='Disable torch.compile (same as not using --torch_compile)')
+    
     args = parser.parse_args()
 
     # Model configuration
-    model_name = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-    output_dir = "./data/checkpoints/phase1a_fullprecision_optimized"
+    model_name = args.model_name
+    output_dir = args.output_dir
 
     # LoRA configuration (same as before)
     lora_config = LoraConfig(
@@ -73,14 +121,14 @@ def main():
     # OPTIMIZED training arguments based on empirical findings
     training_args = TrainingArguments(
         output_dir=output_dir,
-        num_train_epochs=3,
+        num_train_epochs=args.num_train_epochs,
         
         # PROVEN CONFIG: 4 workers, batch=4, grad_accum=2 was FASTEST
-        per_device_train_batch_size=4,      # Up from 2 (proven faster)
-        gradient_accumulation_steps=2,      # Down from 8 (proven faster)
-        # Effective batch size = 8 (faster than 16!)
+        per_device_train_batch_size=args.per_device_train_batch_size,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        # Effective batch size = batch_size * grad_accum
         
-        learning_rate=2e-4,
+        learning_rate=args.learning_rate,
         lr_scheduler_type="cosine",
         warmup_steps=100,
         
@@ -92,23 +140,27 @@ def main():
         gradient_checkpointing=True,
         
         # OPTIMIZED: Fewer checkpoints (reduce overhead)
-        logging_steps=10,
+        logging_steps=args.logging_steps,
+        logging_dir=args.logging_dir,
         save_strategy="steps",
-        save_steps=2000,                    # Was 1000 (save 50% less often)
-        save_total_limit=3,                 # Was 5 (keep fewer checkpoints)
+        save_steps=args.save_steps,
+        save_total_limit=args.save_total_limit,
         load_best_model_at_end=False,      # Don't reload at end (saves time)
         report_to="tensorboard",
         max_grad_norm=1.0,
         
         # OPTIMIZED: Data loading based on empirical findings
-        dataloader_num_workers=4,           # Was 8 (4 was proven fastest)
+        dataloader_num_workers=args.dataloader_num_workers,
         dataloader_pin_memory=True,
         dataloader_prefetch_factor=4,
         ddp_find_unused_parameters=False,
         
+        # Fix for dataset columns
+        remove_unused_columns=False,        # Don't remove input_ids, attention_mask
+        
         # Compilation optimization
-        torch_compile=True,                 # Enable torch.compile (20-30% speedup)
-        torch_compile_mode="reduce-overhead",
+        torch_compile=args.torch_compile,
+        torch_compile_mode="reduce-overhead" if args.torch_compile else None,
     )
 
     print("="*80)
@@ -120,13 +172,20 @@ def main():
     print(f"Effective batch: {training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps}")
     print(f"Workers: {training_args.dataloader_num_workers} (proven optimal)")
     print(f"Checkpoint frequency: Every {training_args.save_steps} steps (optimized)")
-    print(f"Torch compile: {training_args.torch_compile} (20-30% speedup)")
+    print(f"torch.compile: {training_args.torch_compile}")
+    if training_args.torch_compile:
+        print(f"  └─ Mode: {training_args.torch_compile_mode}")
+        print(f"  └─ CUDA graph dynamic shapes: DISABLED (fixes 51 distinct sizes issue)")
     print("="*80)
     print()
-    print("EXPECTED PERFORMANCE:")
-    print(f"  Training time: 20-24 hours (vs 38 hours unoptimized)")
-    print(f"  Cost: $50-60 (vs $95 unoptimized)")
-    print(f"  Speedup: 37-58% faster")
+    if training_args.torch_compile:
+        print("EXPECTED PERFORMANCE WITH torch.compile:")
+        print(f"  Training time: 20-24 hours (with CUDA graph fix)")
+        print(f"  Speed: 0.5-1.5 sec/iteration (consistent)")
+    else:
+        print("EXPECTED PERFORMANCE WITHOUT torch.compile:")
+        print(f"  Training time: ~100 hours")
+        print(f"  Speed: 3-5 sec/iteration (stable)")
     print(f"  Savings: 37-47% cheaper")
     print("="*80)
     print()
@@ -151,6 +210,12 @@ def main():
     # Enable torch.compile for faster training (20-30% speedup)
     if training_args.torch_compile:
         print("Compiling model with torch.compile (may take a few minutes)...")
+        
+        # FIX: Disable dynamic CUDA graphs to avoid 51 distinct shape overhead
+        import torch._inductor.config as inductor_config
+        inductor_config.triton.cudagraph_skip_dynamic_graphs = True
+        print("⚙️  CUDA graph dynamic shapes disabled (fixes 51 distinct sizes issue)")
+        
         model = torch.compile(model, mode="reduce-overhead")
         print("✅ Model compiled")
     
@@ -166,8 +231,8 @@ def main():
 
     # Load dataset with I/O optimization
     if args.use_pretokenized:
-        print("Loading pre-tokenized dataset from /tmp/tokenized_dataset...")
-        tokenized_dataset = load_from_disk("/tmp/tokenized_dataset")
+        print(f"Loading pre-tokenized dataset from {args.pretokenized_path}...")
+        tokenized_dataset = load_from_disk(args.pretokenized_path)
         print(f"✅ Pre-tokenized dataset loaded: {len(tokenized_dataset):,} examples")
     else:
         print("OPTIMIZATION: Copying dataset to local NVMe for faster I/O...")
@@ -184,7 +249,7 @@ def main():
             return tokenizer(
                 texts,
                 truncation=True,
-                max_length=2048,
+                max_length=1024,
                 padding=False,
                 return_tensors=None
             )
@@ -202,7 +267,26 @@ def main():
         tokenized_dataset.save_to_disk("/tmp/tokenized_dataset")
         print("✅ Tokenized dataset saved (use --use_pretokenized next time)")
 
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+    # Configure data collator based on padding strategy
+    if args.use_fixed_padding:
+        # Fixed-length padding: consistent batch shapes but potentially slower
+        class FixedLengthDataCollator(DataCollatorForLanguageModeling):
+            def __call__(self, features):
+                batch = self.tokenizer.pad(
+                    features,
+                    padding='max_length',
+                    max_length=args.max_length,
+                    return_tensors='pt',
+                )
+                batch["labels"] = batch["input_ids"].clone()
+                return batch
+        
+        data_collator = FixedLengthDataCollator(tokenizer=tokenizer, mlm=False)
+        print(f"✅ Using FIXED padding (max_length={args.max_length}) for consistent batch shapes")
+    else:
+        # Dynamic padding: faster for variable-length sequences
+        data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+        print("✅ Using DYNAMIC padding (pads to longest in batch, faster)")
 
     print("\n" + "="*80)
     print("🚀 STARTING OPTIMIZED TRAINING")
