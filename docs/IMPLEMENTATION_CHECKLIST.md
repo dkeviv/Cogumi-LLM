@@ -97,6 +97,11 @@
   - Forward: instruction → response
   - Reverse: "Given answer, what was question?" → instruction
   - Benefit: Bidirectional understanding improves generalization
+- [x] **1C.2.a Bootstrap Builder (no-API)** - Convert authoritative FAIL set into forward/reverse pairs using reference answers
+  - Script: `src/phase1_base/phase1c_build_dataset.py`
+  - Output: `data/phase1c/targeted_failures_from_refs.jsonl` and `data/phase1c/targeted_failures_reverse_from_refs.jsonl`
+  - Tests: `tests/test_phase1c_build_dataset.py` (smoke test with limit=5)
+  - Purpose: Immediate local dataset for test-mode training; later replace outputs with GPT-5 enhanced answers
 - [ ] **1C.3 Install & Configure Axolotl** - Switch to Axolotl for all future fine-tuning
   - Installation: 30 minutes
   - Config: `configs/phase1c_distillation.yaml`
