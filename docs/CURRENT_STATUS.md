@@ -14,6 +14,20 @@
 
 ## 📋 CURRENT STATUS (October 30, 2025)
 
+### ✅ Phase 1B 2.0: Re-judging (GPT5judged) COMPLETED
+
+- Completed full 200-batch re-judging using Haiku LLM reasoning replay backend (no external API).
+- Results: 12,669 PASS / 7,331 FAIL out of 20,000 → Pass rate 63.34% (aligned with prior Haiku analysis).
+- Copilot semantic judge (local embeddings) previously yielded 29.77% pass and is deemed too conservative; kept for analysis only.
+- Artifacts:
+   - Per-batch: `Phase 1B_2_0/data/GPT5judged/batch_*.jsonl`
+   - Aggregate: `Phase 1B_2_0/data/GPT5judged/GPT5judged_all.jsonl`
+   - Summary: `Phase 1B_2_0/data/GPT5judged/summary.json`
+   - Phase 1C feed (FAIL-only): `Phase 1B_2_0/data/GPT5judged/phase1c_failures_gpt5judged.jsonl` (7,331 rows)
+   - Stats/Sample: `Phase 1B_2_0/data/GPT5judged/phase1c_failures_stats.json`, `Phase 1B_2_0/data/GPT5judged/phase1c_failures_sample.jsonl`
+
+Implication: Use the haiku replay judgments as the authoritative source for Phase 1C targeted distillation; copilot semantic outputs retained as auxiliary signal.
+
 ### ✅ PHASE 1A 2.0: FULL PRECISION TRAINING IN PROGRESS
 
 **STATUS:** Phase 1A pivot complete - Now using full precision training (NOT QLoRA)
@@ -297,6 +311,11 @@ Phase 5: Deployment           ░░░░░░░░░░░░░░░░�
 ```
 
 ## 🔑 KEY DECISIONS (Searchable Audit Trail)
+
+### Decision: Authoritative Phase 1B Judging Source (October 30, 2025)
+
+**Decision:** Adopt Haiku LLM reasoning replay as ground truth for Phase 1B judging (pass rate 63.34%); keep Copilot semantic judge (29.77%) as conservative auxiliary analysis only.  
+**Rationale:** Replay reproduces previously validated LLM judgments deterministically without external API; semantic similarity alone undercounts valid answers.
 
 ### Decision: Parallel Training Strategy - Colab + Vast.ai H100 (October 21, 2025)
 

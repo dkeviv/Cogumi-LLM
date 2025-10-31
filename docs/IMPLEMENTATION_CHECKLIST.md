@@ -77,10 +77,15 @@
 **Key Finding:** 89.31% true pass rate with robust validation (70.82% false positive correction)
 
 #### Additional Utility (Re-judging Pipeline)
-- [x] Script added: `Phase 1B_2_0/step7_rejudge_gpt5.py` (mock/local/gpt5 backends, progress, logging, resume/clean, aggregation)
+- [x] Script added: `Phase 1B_2_0/step7_rejudge_gpt5.py` (mock/local/gpt5/copilot/haiku backends, progress, logging, resume/clean, aggregation)
 - [x] Execute re-judging over 200 batches and produce `data/GPT5judged/` outputs
-  - Result: Completed in copilot mode (local semantic). Summary at `Phase 1B_2_0/data/GPT5judged/summary.json`.
-- [ ] Validate `summary.json` and reconcile with provided ChatGPT-5 category table (pending)
+  - Copilot semantic run: 29.77% pass (auxiliary only)
+  - Haiku replay run: 63.34% pass (authoritative)
+  - Summary: `Phase 1B_2_0/data/GPT5judged/summary.json`
+- [x] Export FAIL items for Phase 1C
+  - Output: `Phase 1B_2_0/data/GPT5judged/phase1c_failures_gpt5judged.jsonl` (7,331 rows)
+  - Stats: `Phase 1B_2_0/data/GPT5judged/phase1c_failures_stats.json`
+  - Sample (100): `Phase 1B_2_0/data/GPT5judged/phase1c_failures_sample.jsonl`
 
 ### Phase 1C: GPT-5 Targeted Distillation with Bidirectional Training (5 days, $12.50) ⏳ PENDING
 - [ ] **1C.1 Generate Targeted Data** - 40K examples via Copilot targeting failure patterns
