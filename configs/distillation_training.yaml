@@ -27,12 +27,24 @@ sample_packing: true
 
 # Dataset Configuration - Mixed Training
 datasets:
-  # 90% GPT-5 targeted data (40K examples)
-  - path: data/phase1c/gpt5_filtered_40k.jsonl
+  # 90% targeted data (TEMP: using reference-based bootstrap + improved datasets for smoke tests)
+  # Original planned path:
+  # - path: data/phase1c/gpt5_filtered_40k.jsonl
+  - path: data/phase1c/targeted_failures_from_refs.jsonl
     type: completion
-    weight: 0.9
-  
-  # 10% original data to prevent catastrophic forgetting (60K examples)
+    weight: 0.8
+
+  # New: Improved forward dataset from self-critique (pass=True only)
+  - path: Phase 1B_2_0/data/self_critique/eval/improved_forward.jsonl
+    type: completion
+    weight: 0.08
+
+  # New: Reverse dataset from self-critique (helps instruction generation)
+  - path: Phase 1B_2_0/data/self_critique/eval/improved_reverse.jsonl
+    type: completion
+    weight: 0.02
+
+  # 10% original data to prevent catastrophic forgetting (keep as-is)
   - path: data/phase1/public_500k_filtered.jsonl
     type: completion
     weight: 0.1
