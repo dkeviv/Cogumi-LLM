@@ -1998,6 +1998,50 @@ for ex_id in signatures:
 - **Status**: Implementation complete, awaiting Phase 1A completion
 - **Files Created**:
   - `scripts/automated_gpt4_benchmark.py` (460 lines)
+
+---
+
+### Phase 1C: Hybrid Remediation Components (Self-Critique + Local Eval) ✅ IMPLEMENTED
+
+Two lightweight, no-API utilities enable a fast remediation loop before escalating to teacher models:
+
+- Self-Critique Generator: `Phase 1B_2_0/step9_self_critique_rewrite.py`
+  - Inputs: Authoritative FAIL items (instruction, previous model_output, reference_answer)
+  - Model: Local Phase 1A merged model via transformers; low temperature (0.2), capped tokens
+  - Output: JSONL per item with keys: critique, final_answer
+  - Safeguards: JSON-constrained prompt, robust JSON extraction, progress, periodic logging
+  - Performance features: Optional 4-bit quantization (`--load_in_4bit`, BitsAndBytesConfig) to reduce VRAM + speed up on GPUs; resume support (`--resume`) to append and skip completed IDs; per-record flush for durability.
+
+- Local Evaluator: `Phase 1B_2_0/step10_evaluate_self_critique_local.py`
+  - Method: sentence-transformers (all-MiniLM-L6-v2) cosine similarity(final_answer, reference)
+  - Threshold: Default 0.74 (tunable). Produces per-item eval.jsonl and summary.json
+  - Output: improved_forward.jsonl (instruction → final_answer) for pass=True items, ready for training
+
+Contract:
+- Input shape (step9): {id, instruction, model_output, reference_answer, category?}
+- Output shape (step9): {id, instruction, reference_answer, previous_output, critique, final_answer}
+- Output shape (step10 eval): {id, similarity_score: float, pass: bool, threshold: float}
+
+Notes:
+- These tools are LOCAL and cost-free; they estimate uplift quickly on 200–500 samples.
+- Authoritative re-judging remains Haiku replay for reporting; local evaluator is for triage/ranking.
+Additional Utilities (Uplift & GPU Runner):
+
+- `Phase 1B_2_0/step11_rejudge_uplift_sample.py`:
+  - Purpose: Haiku replay uplift comparison baseline vs improved for a sampled subset.
+  - Constraint: Replay maps by ID to prior results; improved outputs are not in the original set → Only baseline is truly meaningful under replay.
+
+- `Phase 1B_2_0/step12_semantic_uplift.py`:
+  - Purpose: Local semantic uplift proxy using the same MiniLM evaluator. Compares previous_output vs final_answer.
+  - Output: baseline/improved eval files and summary with absolute uplift.
+
+- `scripts/run_self_critique_on_vast.sh`:
+  - Purpose: Ready-to-run Vast.ai script that sets up venv, installs deps (incl. bitsandbytes), runs step9 (`--device cuda --load_in_4bit --resume`) and step10.
+  - Expected Throughput: T4/A10/L4: 25–70 tok/s; A100/H100: 80–200 tok/s. `max_new_tokens` and prompt truncation materially affect runtime.
+
+Pilot Results (Dummy-Mode Wiring Test):
+- Semantic uplift on 200 items: 37.00% → 100.00% (Δ +63.00 points). This is expected when final_answer reproduces reference; serves to validate pipeline wiring. Realistic hf-mode uplift will be lower and should be measured on GPU.
+
   - `scripts/run_phase1b_benchmark.sh` (quick runner)
   - `notebooks/Phase1B_Benchmark.ipynb` (interactive)
   - `README_BENCHMARK.md` (documentation)

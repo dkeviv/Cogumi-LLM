@@ -102,6 +102,26 @@
   - Output: `data/phase1c/targeted_failures_from_refs.jsonl` and `data/phase1c/targeted_failures_reverse_from_refs.jsonl`
   - Tests: `tests/test_phase1c_build_dataset.py` (smoke test with limit=5)
   - Purpose: Immediate local dataset for test-mode training; later replace outputs with GPT-5 enhanced answers
+- [x] **1C.S1 Self-Critique Generator (no-API)** - Generate critiques and corrected answers for FAIL items using local Phase 1A model
+  - Script: `Phase 1B_2_0/step9_self_critique_rewrite.py`
+  - Output: `Phase 1B_2_0/data/self_critique/rewrite.jsonl` (id, instruction, reference_answer, previous_output, critique, final_answer)
+  - Notes: Deterministic-ish settings (temp=0.2), JSON-constrained outputs, progress bars
+  - Enhancements: `--load_in_4bit` (bitsandbytes) to reduce VRAM and speed up on GPU; `--resume` to skip already completed IDs; per-record flush
+- [x] **1C.S2 Local Evaluator (pilot)** - Score self-critique final answers vs reference using semantic similarity
+  - Script: `Phase 1B_2_0/step10_evaluate_self_critique_local.py`
+  - Outputs: `eval.jsonl`, `summary.json`, and `improved_forward.jsonl` for training (pass=True only)
+  - Threshold: Default 0.74 (tunable); encoder: `all-MiniLM-L6-v2`
+  - Tests: Added smoke test for evaluator harness
+  - Uplift (semantic proxy, dummy-mode pilot 200 items): 37.00% → 100.00% (Δ +63.00 points). Note: dummy-mode sets final_answer=reference; real hf-mode uplift will be lower.
+
+- [x] **1C.S3 Uplift Measurement Utilities**
+  - `Phase 1B_2_0/step11_rejudge_uplift_sample.py`: Haiku replay uplift for baseline vs improved (replay maps by ID; improved items not in original set → baseline only meaningful)
+  - `Phase 1B_2_0/step12_semantic_uplift.py`: Local semantic uplift proxy comparing previous_output vs final_answer
+  - Result paths: `Phase 1B_2_0/data/self_critique/uplift/summary.json`, `Phase 1B_2_0/data/self_critique/semantic_uplift/summary.json`
+
+- [x] **1C.S4 Vast.ai Runner**
+  - Script: `scripts/run_self_critique_on_vast.sh` (CUDA, 4-bit, resume). Runs step9 then step10 on a GPU instance.
+  - Usage: See script header for example command; recommended cards: T4/A10/L4 (25–70 tok/s), A100/H100 (80–200 tok/s)
 - [ ] **1C.3 Install & Configure Axolotl** - Switch to Axolotl for all future fine-tuning
   - Installation: 30 minutes
   - Config: `configs/phase1c_distillation.yaml`
