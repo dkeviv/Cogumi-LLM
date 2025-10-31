@@ -76,6 +76,11 @@
 **Documentation:** `/Phase 1B_2_0/PHASE_1B_OFFICIAL_ASSESSMENT.md`  
 **Key Finding:** 89.31% true pass rate with robust validation (70.82% false positive correction)
 
+#### Additional Utility (Re-judging Pipeline)
+- [x] Script added: `Phase 1B_2_0/step7_rejudge_gpt5.py` (mock/local/gpt5 backends, progress, logging, resume/clean, aggregation)
+- [ ] Execute re-judging over 200 batches and produce `data/GPT5judged/` outputs (pending)
+- [ ] Validate `summary.json` and reconcile with provided ChatGPT-5 category table (pending)
+
 ### Phase 1C: GPT-5 Targeted Distillation with Bidirectional Training (5 days, $12.50) ⏳ PENDING
 - [ ] **1C.1 Generate Targeted Data** - 40K examples via Copilot targeting failure patterns
   - 12K code examples (Claude 4.5 via Copilot)

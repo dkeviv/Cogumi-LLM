@@ -427,3 +427,19 @@ All Phase 1B artifacts available at:
 ---
 
 **Status:** ✅ PHASE 1B COMPLETE - Ready to proceed with Phase 1C targeting
+
+---
+
+## HOW-TO: Re-run Judging (GPT5judged)
+
+For reproducibility or to regenerate stricter judgments over the 200 split batches:
+
+- Script: `Phase 1B_2_0/step7_rejudge_gpt5.py`
+- Inputs: `Phase 1B_2_0/data/copilot_batches/batch_001.json … batch_200.json`
+- Outputs: `Phase 1B_2_0/data/GPT5judged/batch_001.jsonl …`, `GPT5judged_all.jsonl`, and `summary.json`
+
+Quick dry run:
+- Use `--mode mock --limit_batches 2` for a fast check (no external API)
+
+Full run:
+- Use `--mode gpt5 --clean` to generate all outputs fresh, with progress and logging
