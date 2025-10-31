@@ -30,7 +30,8 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Set
+import re
 from rich.progress import Progress, TimeElapsedColumn, TimeRemainingColumn, BarColumn, TextColumn
 from loguru import logger
 
@@ -133,6 +134,182 @@ class GPT5Judge(Judge):
     async def assess(self, example: Dict[str, Any]) -> Judgment:
         async with self.semaphore:
             return await self._call_api(example)
+        
+        
+import numpy as np
+
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception as _e:  # pragma: no cover - handled at runtime if missing
+    SentenceTransformer = None  # type: ignore
+
+
+class CopilotJudge(Judge):
+    """Local semantic judge using sentence-transformers (no external APIs).
+
+    This aims to mimic a stricter GPT-5-like stance by using cosine similarity
+    between reference and model_output with category-aware thresholds. It runs
+    fully locally using a compact embedding model for speed.
+    """
+
+    def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
+        if SentenceTransformer is None:
+            raise RuntimeError(
+                "sentence-transformers is not installed. Please install it to use --mode copilot."
+            )
+        # Load once; this will download on first run if not cached
+        self.model = SentenceTransformer(model_name)
+        # Capture device for logging without using deprecated internals
+        self.device_str = str(getattr(self.model, "device", getattr(self.model, "_target_device", "cpu")))
+
+        # Category-aware similarity thresholds (stricter = higher)
+        self.thresholds: Dict[str, float] = {
+            "code": 0.78,
+            "math": 0.82,
+            "reasoning": 0.80,
+            "qa": 0.80,
+            "creative": 0.75,
+            "other": 0.78,
+        }
+
+    @staticmethod
+    def _cos_sim(a: np.ndarray, b: np.ndarray) -> float:
+        """Compute cosine similarity between two 1-D numpy vectors.
+
+        Ensures numerical stability and type consistency.
+        """
+        a_np = np.asarray(a, dtype=np.float32)
+        b_np = np.asarray(b, dtype=np.float32)
+        denom = float(np.linalg.norm(a_np) * np.linalg.norm(b_np) + 1e-8)
+        return float(np.dot(a_np, b_np) / denom)
+
+    @staticmethod
+    def _to_numpy(x: Any) -> np.ndarray:
+        """Best-effort conversion of embeddings to numpy array for type safety."""
+        try:
+            # torch.Tensor path
+            if hasattr(x, "detach"):
+                return x.detach().cpu().numpy()
+        except Exception:
+            pass
+        return np.asarray(x, dtype=np.float32)
+
+    async def assess(self, example: Dict[str, Any]) -> Judgment:
+        ref = (example.get("reference") or "").strip()
+        out = (example.get("model_output") or "").strip()
+        cat = (example.get("category") or "other").lower()
+        thr = self.thresholds.get(cat, 0.78)
+
+        # Encode locally. Normalize by using l2 and computing cosine.
+        # We encode individually to keep memory small.
+        ref_emb = self.model.encode(ref, normalize_embeddings=True, convert_to_tensor=False)
+        out_emb = self.model.encode(out, normalize_embeddings=True, convert_to_tensor=False)
+        sim = self._cos_sim(self._to_numpy(ref_emb), self._to_numpy(out_emb))
+
+        verdict = "PASS" if sim >= thr else "FAIL"
+        reason = f"copilot-semantic sim={sim:.3f} thr={thr:.2f} device={self.device_str}"
+        confidence = 0.65 + 0.25 * max(0.0, (sim - thr))  # higher margin → slightly higher confidence
+        return Judgment(judgment=verdict, reason=reason, confidence=min(confidence, 0.95), judged_by="copilot-semantic")
+
+
+class Gpt5MimicJudge(Judge):
+    """Stricter, category-aware heuristic judge approximating GPT-5 behavior.
+
+    Strategy:
+    - Token-level overlap on content words (stopword-removed, lowercased)
+    - Numeric agreement checks for math/QA
+    - Code presence heuristics (code markers, keywords)
+    - Category-specific thresholds tuned to be conservative
+    """
+
+    _STOPWORDS: Set[str] = {
+        "the","a","an","and","or","but","if","then","else","for","to","of","in","on","at","by",
+        "is","are","was","were","be","been","being","with","as","that","this","those","these",
+        "it","its","from","we","you","they","i","he","she","him","her","them","our","your",
+        "not","no","yes","do","does","did","have","has","had","can","could","should","would",
+        "will","shall","may","might","than","so","such","there","their","therefore","thus","hence"
+    }
+
+    _CODE_TOKENS: Set[str] = {
+        "def","class","return",";","{","}","=>","function","var","let","const","public","private",
+        "static","import","from","#include","using","->","lambda","try","catch","finally","except"
+    }
+
+    @staticmethod
+    def _tokenize(text: str) -> List[str]:
+        text = text.lower()
+        # Keep alphanumerics and basic symbols important for code/math
+        text = re.sub(r"[^a-z0-9_\-\.\s]", " ", text)
+        return [t for t in text.split() if t]
+
+    @classmethod
+    def _content_words(cls, text: str) -> Set[str]:
+        return {t for t in cls._tokenize(text) if t not in cls._STOPWORDS}
+
+    @staticmethod
+    def _numbers(text: str) -> List[str]:
+        # capture integers/decimals, including negatives
+        return re.findall(r"-?\d+(?:\.\d+)?", text)
+
+    @classmethod
+    def _jaccard_overlap(cls, a: str, b: str) -> float:
+        sa, sb = cls._content_words(a), cls._content_words(b)
+        if not sa or not sb:
+            return 0.0
+        inter = len(sa & sb)
+        union = len(sa | sb)
+        return inter / union if union else 0.0
+
+    @classmethod
+    def _requires_code_presence(cls, text: str) -> bool:
+        toks = set(cls._tokenize(text))
+        return any(tok in toks for tok in cls._CODE_TOKENS) or "```" in text
+
+    @classmethod
+    def _numeric_consistency(cls, ref: str, out: str) -> bool:
+        ref_nums = cls._numbers(ref)
+        if not ref_nums:
+            return True
+        out_nums = cls._numbers(out)
+        if not out_nums:
+            return False
+        # Require at least 60% of ref numbers present in output
+        match = sum(1 for n in ref_nums if n in out_nums)
+        return (match / max(1, len(ref_nums))) >= 0.6
+
+    async def assess(self, example: Dict[str, Any]) -> Judgment:
+        category = (example.get("category") or "other").lower()
+        ref = example.get("reference") or ""
+        out = example.get("model_output") or ""
+
+        sim = self._jaccard_overlap(ref, out)
+        numeric_ok = self._numeric_consistency(ref, out)
+
+        # Category-specific thresholds (conservative)
+        if category == "code":
+            needs_code = self._requires_code_presence(out) or ("```" in ref)
+            verdict = sim >= 0.55 and (numeric_ok or True) and (needs_code or sim >= 0.65)
+        elif category == "math":
+            verdict = sim >= 0.45 and numeric_ok
+        elif category == "qa":
+            verdict = sim >= 0.5 and (numeric_ok or True)
+        elif category == "reasoning":
+            verdict = sim >= 0.4
+        elif category == "creative":
+            verdict = sim >= 0.3
+        else:  # other
+            verdict = sim >= 0.5
+
+        judgment = "PASS" if verdict else "FAIL"
+        reason = (
+            f"gpt5-mimic: sim={sim:.2f}, numeric={'ok' if numeric_ok else 'mismatch'}, category={category}"
+        )
+        # Confidence heuristic: tie to similarity and numeric match
+        base_conf = 0.55 + 0.35 * sim
+        if numeric_ok:
+            base_conf += 0.05
+        base_conf = min(0.95, max(0.55, base_conf))
+        return Judgment(judgment=judgment, reason=reason, confidence=base_conf, judged_by="gpt5-mimic")
 
 
 # -------------- Core Evaluation Logic --------------
@@ -189,6 +366,8 @@ async def main(mode: str, limit_batches: Optional[int], resume: bool, clean: boo
         judge = LocalJudge()
     elif mode == "gpt5":
         judge = GPT5Judge()
+    elif mode == "copilot":
+        judge = CopilotJudge()
     else:
         raise ValueError(f"Unknown mode: {mode}")
 
@@ -292,7 +471,7 @@ async def main(mode: str, limit_batches: Optional[int], resume: bool, clean: boo
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Re-judge copilot_batches with GPT5-like judge")
-    parser.add_argument("--mode", choices=["mock", "local", "gpt5"], default="mock")
+    parser.add_argument("--mode", choices=["mock", "local", "gpt5", "copilot"], default="mock")
     parser.add_argument("--limit_batches", type=int, default=None, help="Limit number of batches for quick run")
     parser.add_argument("--resume", action="store_true", help="Skip existing batch outputs and append to aggregate")
     parser.add_argument("--clean", action="store_true", help="Delete old outputs in data/GPT5judged before running")

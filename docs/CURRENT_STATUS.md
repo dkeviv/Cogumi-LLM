@@ -8,15 +8,41 @@
 
 **Student Model:** LLAMA-3.2-8B (upgraded from Qwen-7B for +14% more parameters)  **For Task Tracking:** See `IMPLEMENTATION_CHECKLIST.md`
 
-**Last Updated:** October 27, 2025
+**Last Updated:** October 30, 2025
 
 ---
 
-## 📋 CURRENT STATUS (January 25, 2025)
+## 📋 CURRENT STATUS (October 30, 2025)
 
-### � PHASE 1A: CRITICAL ARCHITECTURE ERROR DISCOVERED - RETRAIN REQUIRED
+### ✅ PHASE 1A 2.0: FULL PRECISION TRAINING IN PROGRESS
 
-**CRITICAL ISSUE:** Original Phase 1A training used 4-bit quantized base model, causing catastrophic merge corruption.
+**STATUS:** Phase 1A pivot complete - Now using full precision training (NOT QLoRA)
+
+**Phase 1A Evolution:**
+- **Phase 1A 1.0 (DEPRECATED):** QLoRA 4-bit → Merge corruption → Abandoned
+- **Phase 1A 2.0 (CURRENT):** Full precision bfloat16 → Clean merge → In Progress ✅
+
+**Current Training:**
+- Location: `Phase1A_2_0/` (self-contained folder)
+- Method: Full precision LoRA fine-tuning on bfloat16 base (NOT QLoRA!)
+- Base: `meta-llama/Meta-Llama-3.1-8B-Instruct` (full precision)
+- Hardware: H100 80GB on Vast.ai
+- Dataset: 600K curated examples
+- Expected: 8-12 hours, $20-30
+- Output: 10GB merged bfloat16 model (clean, no artifacts)
+
+**Phase 1B Preparation:**
+- Step 2 Generation: Running on H100 (batch_size=64, max_tokens=512)
+- Progress: ~1% complete, ETA 2.5 hours
+- Next: Copilot Chat comparison (Step 3) → Failure clustering → Phase 1C
+
+---
+
+## 📚 HISTORICAL: PHASE 1A 1.0 (DEPRECATED - October 2025)
+
+### ⚠️ PHASE 1A 1.0: ARCHITECTURE ERROR - QLORA APPROACH ABANDONED
+
+**CRITICAL ISSUE:** Original Phase 1A 1.0 used 4-bit quantized base model (QLoRA), causing catastrophic merge corruption.
 
 #### Discovery Timeline
 1. **Phase 1B training showed catastrophic forgetting** (0% wins, 78% losses)
@@ -105,27 +131,93 @@ Train LoRA on full precision base (bfloat16)
 - **Root Cause Diagnosed:** 10% consistency (model generates completely different outputs every run)
 - **Impact:** High tie rates prevent accurate scoring, model is too random/non-deterministic
 
-#### Phase 1B Execution Plan (IN PROGRESS 🔄)
-- **Goal:** Improve 10% → 60-80% consistency through self-consistent training data
-- **Method:** Category-specific temperature strategies
-  - MATH/CODE: Generate at temp=0.0 (deterministic)
-  - CREATIVITY: Generate at temp=0.7 → train at temp=0.3
-- **Steps:**
-  1. Generate 664 self-consistent examples (500 MATH + 164 CODE)
-  2. Train 2 epochs with lr=5e-6 on consistent data
-  3. Re-benchmark to measure improvement
-- **Expected Results:**
-  - Consistency: 10% → 60-80%
-  - MATH: 41% → 65-75%, ties 70% → <30%
-  - CODE: 58% → 70-80%, ties 28% → <20%
-- **Time:** 5-7 hours total
-- **Cost:** $12-17
-- **Scripts:** 
-  - `scripts/run_phase1b_self_consistency.sh` (one-command execution)
-  - `scripts/self_consistency_distillation.py` (data generation)
-- **Documentation:** 
-  - `PHASE1B_SELF_CONSISTENCY_PLAN.md` (full plan)
-  - `PHASE1B_QUICKSTART.md` (quick reference)
+#### Phase 1B: Failure Analysis & GPT-5 Targeted Distillation (READY TO START �)
+
+**NEW APPROACH (Phase 1B 2.0):** Llama-405B Judge + GPT-5 Targeted Data Generation
+
+**Goal:** Identify Phase 1A weaknesses → Generate targeted GPT-5 examples → Enhance model to 88-100% GPT-4
+
+**Pipeline (3-Step Approach):**
+
+**Step 1: Create Curated Test Dataset (5-10 mins, $0)**
+   ```bash
+   python "Phase1B_2_0/step1_create_test_dataset.py" \
+       --dataset_path ./Phase1A_2_0/data/public_500k_filtered.jsonl \
+       --output_path ./data/phase1b/test_dataset_20k.jsonl \
+       --num_samples 20000
+   ```
+   - Stratified sampling ensures proper category representation
+   - Auto-detects categories: math, code, reasoning, creative, qa, other
+   - Outputs: `test_dataset_20k.jsonl`, `test_dataset_stats.json`
+
+**Step 2: Generate Model Outputs (1-2 hours, $0)**
+   ```bash
+   python "Phase1B_2_0/step2_generate_outputs.py" \
+       --model_path ./Phase1A_2_0/models/phase1a_merged_10gb \
+       --test_dataset ./data/phase1b/test_dataset_20k.jsonl \
+       --output_path ./data/phase1b/model_outputs_20k.jsonl
+   ```
+   - Runs merged model on test dataset
+   - Generates outputs once, reusable for multiple judging runs
+   - Outputs: `model_outputs_20k.jsonl`, `generation_stats.json`
+
+**Step 3: Judge with Llama (6-8 hours with 70B, $0)**
+   ```bash
+   # Fast: 70B model (recommended)
+   python "Phase1B_2_0/step3_judge_outputs.py" \
+       --model_outputs ./data/phase1b/model_outputs_20k.jsonl \
+       --output_path ./data/phase1b/judged_results.jsonl
+   
+   # Highest quality: 405B model (10x slower)
+   python "Phase1B_2_0/step3_judge_outputs.py" \
+       --model_outputs ./data/phase1b/model_outputs_20k.jsonl \
+       --output_path ./data/phase1b/judged_results.jsonl \
+       --judge_model meta-llama/Llama-3.1-405B-Instruct
+   ```
+   - Compares model outputs vs references
+   - Uses Llama-3.3-70B-Instruct (default, fast) or Llama-3.1-405B-Instruct (highest quality)
+   - Can re-run with different judges/thresholds without regenerating
+   - Outputs: `judged_results.jsonl`, `failures.jsonl`, `summary.json`
+
+**Advantages of 3-Step Approach:**
+- ✅ Reusable outputs: Generate once, judge multiple times
+- ✅ Faster iteration: Change judge model/threshold without regeneration
+- ✅ Better debugging: Inspect outputs before judging
+- ✅ Category tracking: See performance by task type
+
+2. **Cluster Failures (5-10 mins, $0):**
+   ```bash
+   python "Phase1B_2_0/phase1b_cluster_failures.py" \
+       --failures ./data/phase1b/failures.jsonl \
+       --output ./data/phase1b/clusters.json \
+       --num_clusters 10
+   ```
+   - Uses sentence-transformers embeddings + KMeans
+   - Groups similar failures (e.g., "Weak Math", "Incomplete Code")
+
+3. **Label Patterns (2-5 mins, $0):**
+   ```bash
+   python "Phase1B_2_0/phase1b_label_patterns.py" \
+       --clusters ./data/phase1b/clusters.json \
+       --output ./data/phase1b/patterns.json
+   ```
+   - Uses Llama-405B to auto-label failure patterns
+   - Identifies 8-12 specific weakness categories
+
+4. **Generate GPT-5 Data (via GitHub Copilot):**
+   - Use `patterns.json` to guide example generation
+   - Generate 60K targeted examples addressing failures
+   - Total cost: ~$280 (GPT-5 via Copilot)
+
+5. **Phase 1C Training:**
+   - Train on 90% GPT-5 + 10% original (prevent forgetting)
+   - Lower lr=3e-6, 5 days on A100
+   - Target: 88-100% GPT-4 performance
+
+**Scripts:** 3-step pipeline (`step1_create_test_dataset.py`, `step2_generate_outputs.py`, `step3_judge_outputs.py`) + clustering/labeling (`phase1b_cluster_failures.py`, `phase1b_label_patterns.py`)
+**Cost:** $0 for Phase 1B analysis (Llama judges are FREE), $280 for Phase 1C GPT-5 data
+**Time:** ~8-10 hours total (Step 1: 5-10 mins, Step 2: 1-2 hours, Step 3: 6-8 hours with 70B)
+**Status:** 3-step pipeline ready, old monolithic script removed, reusable artifacts design
 
 
 #### Training Run 1: Colab (Primary)
@@ -1124,6 +1216,9 @@ IF MODEL DOESN'T WORK:
 ---
 
 ## 📝 CHANGELOG
+
+### January 30, 2025 - Phase 1B Redesigned as 3-Step Pipeline
+**Issue Encountered:** (1) HuggingFace Inference API's `text_generation()` endpoint routing through SambaNova provider which doesn't support text-generation task. (2) 405B model extremely slow at 12s/iteration (68+ hours for 20K samples). (3) Monolithic script forced regeneration of model outputs every time judging needed adjustment. **User Request:** "Split the test into 3 steps: (1) Create curated 20K dataset with proper category representation, (2) Generate model outputs once, (3) Judge outputs with Llama-405B." **Solution Implemented:** Complete redesign into modular 3-step pipeline with separate scripts for each phase. **Step 1 (step1_create_test_dataset.py):** Stratified sampling from full dataset ensuring category representation (math, code, reasoning, creative, qa, other). Takes 5-10 minutes, outputs reusable test dataset. **Step 2 (step2_generate_outputs.py):** Runs merged model on test dataset once. Takes 1-2 hours, outputs reusable model responses. **Step 3 (step3_judge_outputs.py):** Compares model vs reference using Llama judge. Defaults to 70B for speed (6-8 hours) but supports 405B for highest quality. Can re-run with different judges/thresholds without regenerating outputs. **Benefits:** (1) Reusable outputs eliminate redundant generation. (2) Fast iteration on judging parameters. (3) Better debugging with intermediate artifacts. (4) Category-level performance tracking. (5) Choose speed (70B) or quality (405B) per use case. **Scripts:** `step1_create_test_dataset.py`, `step2_generate_outputs.py`, `step3_judge_outputs.py`, `run_complete_pipeline.sh` (orchestrates all), plus existing `phase1b_cluster_failures.py` and `phase1b_label_patterns.py` for Steps 4-5. **Cleanup:** Removed old monolithic `phase1b_test_model.py` script (superseded by 3-step pipeline). Updated `phase1b_cluster_failures.py` docstring and help text to reference new Step 3. Updated CURRENT_STATUS.md to reflect new script structure. **API Fix:** Migrated to `chat_completion()` from `text_generation()` for provider compatibility throughout all scripts. **Status:** Ready for execution - all references cleaned up, no errors detected.
 
 ### January 16, 2025 - Phase 1B Validation Cost Optimization
 **User Insight:** "Shouldn't we already have the GPT-4 response from the original benchmark... why are we doing it again with API?" **Problem Identified:** Original validation plan regenerated GPT-4 responses for same 100 prompts already tested in Phase 1A (100 GPT-4 generations @ $0.0075 each = $0.75 wasted). **Solution Implemented:** Created `validate_phase1b1_optimized.py` that loads Phase 1A's saved GPT-4 responses from `{category}_intermediate.json` files and reuses them for judging Phase 1B.1. Only judges Phase 1B.1 vs Phase 1A's saved GPT-4 baseline (100 judging calls instead of 200 total calls). **Impact:** 50% cost savings ($1.50 → $0.75 per validation), 50% time savings (30-40 min → 15-20 min), zero quality loss (same prompts, same GPT-4 baseline, deterministic at temp=0.0). **Scripts:** `validate_phase1b1.sh` now calls optimized approach (default), `validate_phase1b1_expensive.sh` keeps original for reference. **Documentation:** Created `PHASE1B_VALIDATION_OPTIMIZATION.md` explaining reuse strategy, cost breakdown, usage instructions. **Principle:** "If you already have the answer, don't ask again" - Phase 1A benchmarking saved both model and GPT-4 responses, Phase 1B validation uses same prompts for fair comparison, therefore reuse saved GPT-4 instead of regenerating. **Benefit for Iteration:** Cheaper validation ($0.75 vs $1.50) enables more experimentation - if Phase 1B.1 needs 3 iterations, saves $2.25 total.

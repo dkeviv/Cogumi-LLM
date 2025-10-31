@@ -113,3 +113,9 @@ archive_old_src/
 *.jsonl
 Phase0/data/*.jsonl
 Phase1A_2_0/data/*.jsonl
+Phase 1B_2_0/data/*.jsonl
+
+# Phase 1A/1B model files and checkpoints (too large)
+Phase1A_2_0/models/
+Phase1A_2_0/data/checkpoints/
+Phase 1B_2_0/data/

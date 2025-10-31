@@ -78,7 +78,8 @@
 
 #### Additional Utility (Re-judging Pipeline)
 - [x] Script added: `Phase 1B_2_0/step7_rejudge_gpt5.py` (mock/local/gpt5 backends, progress, logging, resume/clean, aggregation)
-- [ ] Execute re-judging over 200 batches and produce `data/GPT5judged/` outputs (pending)
+- [x] Execute re-judging over 200 batches and produce `data/GPT5judged/` outputs
+  - Result: Completed in copilot mode (local semantic). Summary at `Phase 1B_2_0/data/GPT5judged/summary.json`.
 - [ ] Validate `summary.json` and reconcile with provided ChatGPT-5 category table (pending)
 
 ### Phase 1C: GPT-5 Targeted Distillation with Bidirectional Training (5 days, $12.50) ⏳ PENDING

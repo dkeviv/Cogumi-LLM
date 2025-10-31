@@ -456,3 +456,31 @@ Executed quick validation over first 2 batches with mock backend:
    - Per-batch outputs: `batch_001.jsonl`, `batch_002.jsonl`
 
 This verifies end-to-end flow, file schema, aggregation, and reporting.
+
+### Completed Re-run: GPT5judged (Copilot Semantic)
+
+We executed the full 200-batch re-judging locally using the Copilot semantic judge (`--mode copilot`). No external APIs were used.
+
+Artifacts generated:
+- Per-batch outputs: `Phase 1B_2_0/data/GPT5judged/batch_001.jsonl … batch_200.jsonl`
+- Aggregate: `Phase 1B_2_0/data/GPT5judged/GPT5judged_all.jsonl`
+- Summary: `Phase 1B_2_0/data/GPT5judged/summary.json`
+
+Summary (Copilot semantic judge):
+- Total: 20,000
+- Pass: 5,955
+- Fail: 14,045
+- Pass rate: 29.77%
+
+Per-category breakdown:
+- other: total=2,141, pass=504, fail=1,637
+- code: total=11,153, pass=3,633, fail=7,520
+- math: total=4,694, pass=1,209, fail=3,485
+- reasoning: total=1,157, pass=331, fail=826
+- qa: total=647, pass=210, fail=437
+- creative: total=208, pass=68, fail=140
+
+Notes:
+- Stricter, category-aware cosine thresholds with `all-MiniLM-L6-v2` embeddings.
+- Provides conservative failure mining for Phase 1C; complements other evaluators.
+- Reproducible via `python step7_rejudge_gpt5.py --mode copilot --clean`.

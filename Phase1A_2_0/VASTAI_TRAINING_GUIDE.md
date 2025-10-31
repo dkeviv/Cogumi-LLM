@@ -730,14 +730,242 @@ python train_phase1a_optimized_h100.py \
     --logging_dir "/workspace/Cogumi-LLM/Phase1A_2_0/data/logs"
 ```
 
-**Merge**:
+**Merge** (see detailed steps below):
 ```bash
-python merge_adapter_fullprecision.py \
-    --base_model "meta-llama/Meta-Llama-3.1-8B-Instruct" \
-    --adapter_path "/workspace/Cogumi-LLM/Phase1A_2_0/data/checkpoints/checkpoint-28000" \
-    --output_path "/workspace/Cogumi-LLM/Phase1A_2_0/data/merged/merged_phase1a_v2.0"
+# After training completes, see Phase 3: Post-Training Merge & Validation
 ```
 
 ---
 
-**Status**: ✅ Ready for Vast.ai H100 Training - Expected: 8-12 hours, $20-30 cost
+## Phase 3: Post-Training Merge & Validation (15-30 minutes)
+
+### ⚠️ Critical: Adapter Metadata Fix Required
+
+**Issue**: The training script saves `model.safetensors` but not `adapter_config.json`, which PEFT needs to load the adapter.
+
+**Solution**: Create the adapter metadata manually before merging.
+
+---
+
+### Step 3.1: Create Adapter Config (MANDATORY)
+
+After training completes, navigate to your checkpoint directory:
+
+```bash
+cd /workspace/Cogumi-LLM/Phase1A_2_0/data/checkpoints
+```
+
+**Create `adapter_config.json`** with this exact content:
+
+```bash
+cat > adapter_config.json << 'EOF'
+{
+  "base_model_name_or_path": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+  "peft_type": "LORA",
+  "task_type": "CAUSAL_LM",
+  "r": 64,
+  "lora_alpha": 16,
+  "target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj"
+  ],
+  "bias": "none",
+  "lora_dropout": 0.05,
+  "fan_in_fan_out": false,
+  "modules_to_save": null
+}
+EOF
+```
+
+**Critical Fields**:
+- `r`: 64 (LoRA rank from training)
+- `lora_alpha`: 16 (NOT "alpha" - common mistake!)
+- `target_modules`: Must match training script exactly
+- `base_model_name_or_path`: HuggingFace model ID
+
+---
+
+### Step 3.2: Copy Adapter Weights
+
+The training script saves weights as `model.safetensors`, but PEFT expects `adapter_model.safetensors`:
+
+```bash
+cd /workspace/Cogumi-LLM/Phase1A_2_0/data/checkpoints
+cp model.safetensors adapter_model.safetensors
+```
+
+**Verify files are present**:
+```bash
+ls -lh adapter_config.json adapter_model.safetensors
+# Expected:
+# adapter_config.json (~500 bytes)
+# adapter_model.safetensors (~16GB)
+```
+
+---
+
+### Step 3.3: Merge Adapter into Base Model
+
+Use the patched merge script that handles HuggingFace model IDs:
+
+```bash
+cd /workspace/Cogumi-LLM/Phase1A_2_0/scripts
+
+python merge_lora_adapter.py \
+    --base_model meta-llama/Meta-Llama-3.1-8B-Instruct \
+    --adapter_path ../data/checkpoints \
+    --output_path ../models/phase1a_merged_10gb \
+    --device_map auto \
+    --torch_dtype float16
+```
+
+**Expected Output**:
+```
+Step 1/5: Loading base model... ✓
+Step 2/5: Loading LoRA adapter... ✓
+Step 3/5: Merging adapter weights... ✓
+Step 4/5: Saving merged model... ✓
+Step 5/5: Verifying saved model... ✓
+
+✅ Successfully merged adapter!
+Output location: /workspace/Cogumi-LLM/Phase1A_2_0/models/phase1a_merged_10gb
+```
+
+**Merge will take**: 5-10 minutes (loading base + merging + saving ~10GB)
+
+---
+
+### Step 3.4: Validate Merged Model
+
+Run quick validation to ensure the merged model works:
+
+```bash
+cd /workspace/Cogumi-LLM/Phase1A_2_0/scripts
+
+python validate_merged_model.py \
+    --model_path ../models/phase1a_merged_10gb \
+    --device cuda
+```
+
+**Expected Output**:
+```
+✅ Validation Summary:
+Tests passed: 4-6/6 (67-100%)
+Average score: 55-80/100
+
+Domain Breakdown:
+- Code: 60-80/100
+- Reasoning: 50-75/100
+- Automation: 50-70/100
+- General: 60-85/100
+```
+
+**Note**: If you see repeated sequences or quality issues, this is expected pre-Phase1C. The base model will be enhanced in Phase 1B/1C with failure-aware GPT-5 distillation.
+
+---
+
+### Step 3.5: Download Merged Model (Optional)
+
+If you want to download the merged model to your local machine:
+
+```bash
+# From your local machine:
+scp -r -P <vast_port> \
+    root@<vast_ip>:/workspace/Cogumi-LLM/Phase1A_2_0/models/phase1a_merged_10gb \
+    ./local_models/
+```
+
+**Size**: ~10GB (will take 10-30 minutes depending on network speed)
+
+---
+
+### Common Merge Issues & Solutions
+
+#### Issue 1: "Can't find adapter_config.json"
+**Cause**: Training script didn't save adapter metadata.
+**Solution**: Create `adapter_config.json` manually (see Step 3.1)
+
+#### Issue 2: "LoraConfig got unexpected keyword 'alpha'"
+**Cause**: Wrong field name in adapter_config.json
+**Solution**: Use `lora_alpha`, NOT `alpha` (see Step 3.1 for correct config)
+
+#### Issue 3: "Base model not found at path"
+**Cause**: Script treating HuggingFace ID as local path
+**Solution**: Use `merge_lora_adapter.py` (patched version), NOT older merge scripts
+
+#### Issue 4: "Out of memory during merge"
+**Cause**: Loading full base model + adapter in memory
+**Solution**: Use `--torch_dtype float16` and `--device_map auto` (already in command above)
+
+---
+
+## 🎯 Quick Reference Card
+
+**Setup**:
+```bash
+cd /workspace/Cogumi-LLM/Phase1A_2_0/scripts
+python3.10 -m venv venv_phase1a_2_0
+source venv_phase1a_2_0/bin/activate
+pip install -r requirements-stable-precompiled.txt
+python verify_h100_environment.py
+```
+
+**Data Prep**:
+```bash
+cp ../data/public_500k_filtered.jsonl /tmp/dataset.jsonl
+```
+
+**Train**:
+```bash
+python train_phase1a_optimized_h100.py \
+    --model_name "meta-llama/Meta-Llama-3.1-8B-Instruct" \
+    --dataset_path "/tmp/dataset.jsonl" \
+    --output_dir "/workspace/Cogumi-LLM/Phase1A_2_0/data/checkpoints" \
+    --logging_dir "/workspace/Cogumi-LLM/Phase1A_2_0/data/logs"
+```
+
+**Post-Training** (MANDATORY):
+```bash
+# 1. Create adapter metadata
+cd /workspace/Cogumi-LLM/Phase1A_2_0/data/checkpoints
+cat > adapter_config.json << 'EOF'
+{
+  "base_model_name_or_path": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+  "peft_type": "LORA",
+  "task_type": "CAUSAL_LM",
+  "r": 64,
+  "lora_alpha": 16,
+  "target_modules": ["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"],
+  "bias": "none",
+  "lora_dropout": 0.05,
+  "fan_in_fan_out": false,
+  "modules_to_save": null
+}
+EOF
+
+# 2. Copy adapter weights
+cp model.safetensors adapter_model.safetensors
+
+# 3. Merge adapter
+cd ../scripts
+python merge_lora_adapter.py \
+    --base_model meta-llama/Meta-Llama-3.1-8B-Instruct \
+    --adapter_path ../data/checkpoints \
+    --output_path ../models/phase1a_merged_10gb \
+    --device_map auto \
+    --torch_dtype float16
+
+# 4. Validate
+python validate_merged_model.py \
+    --model_path ../models/phase1a_merged_10gb \
+    --device cuda
+```
+
+---
+
+**Status**: ✅ Ready for Vast.ai H100 Training - Expected: 8-12 hours training + 15-30 mins merge = $20-30 cost
