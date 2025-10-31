@@ -443,3 +443,16 @@ Quick dry run:
 
 Full run:
 - Use `--mode gpt5 --clean` to generate all outputs fresh, with progress and logging
+
+### Dry-Run Results (Mock Backend)
+
+Executed quick validation over first 2 batches with mock backend:
+
+- Command: mock mode, `--limit_batches 2 --clean`
+- Output summary: `data/GPT5judged/summary.json`
+- Result snapshot:
+   - total: 200, pass: 74, fail: 126, pass_rate: 37.0%
+   - per_category totals present (code, math, reasoning, qa, creative, other)
+   - Per-batch outputs: `batch_001.jsonl`, `batch_002.jsonl`
+
+This verifies end-to-end flow, file schema, aggregation, and reporting.
