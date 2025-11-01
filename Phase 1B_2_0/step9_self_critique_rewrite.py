@@ -10,13 +10,13 @@ Outputs:
 Usage:
   python "Phase 1B_2_0/step9_self_critique_rewrite.py" \
     --model_path Phase1A_2_0/models/phase1a_merged_10gb \
-    --failures_jsonl "Phase 1B_2_0/data/GPT5judged/phase1c_failures_gpt5judged.jsonl" \
+    --failures_jsonl "Phase 1B_2_0/data/haiku_replay/phase1c_failures_haiku_replay.jsonl" \
     --output_jsonl "Phase 1B_2_0/data/self_critique/rewrite.jsonl" \
-        --device cuda --limit 500 --max_new_tokens 160 --mode hf
+    --device cuda --load_in_4bit --resume --mode hf
 
 Fast wiring pilot (no model):
     python "Phase 1B_2_0/step9_self_critique_rewrite.py" \
-        --failures_jsonl "Phase 1B_2_0/data/GPT5judged/phase1c_failures_gpt5judged.jsonl" \
+        --failures_jsonl "Phase 1B_2_0/data/haiku_replay/phase1c_failures_haiku_replay.jsonl" \
         --output_jsonl "Phase 1B_2_0/data/self_critique/rewrite.jsonl" \
         --mode dummy --limit 200
 

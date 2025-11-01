@@ -3,8 +3,8 @@
 # Usage: bash scripts/run_self_critique_on_vast.sh <MODEL_DIR> <FAILURES_JSONL> <OUTPUT_JSONL> [LIMIT]
 # Example:
 #   bash scripts/run_self_critique_on_vast.sh /workspace/phase1a_merged_10gb \
-#     "/workspace/Phase 1B_2_0/data/GPT5judged/phase1c_failures_gpt5judged.jsonl" \
-#     "/workspace/Phase 1B_2_0/data/self_critique/rewrite_hf_10k.jsonl" 10000
+#     "/workspace/Phase 1B_2_0/data/haiku_replay/phase1c_failures_haiku_replay.jsonl" \
+#     "/workspace/Phase 1B_2_0/data/self_critique/rewrite_hf_full.jsonl" 7331
 
 set -euo pipefail
 
