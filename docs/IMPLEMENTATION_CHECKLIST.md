@@ -87,6 +87,36 @@
   - Stats: `Phase 1B_2_0/data/GPT5judged/phase1c_failures_stats.json`
   - Sample (100): `Phase 1B_2_0/data/GPT5judged/phase1c_failures_sample.jsonl`
 
+#### Additional Utility (Dataset Splitter for Claude Analysis)
+- [x] Script added: `Phase 1B_2_0/split_for_claude.py` - Split large paired JSONL files into chunks for Claude Desktop
+  - **Purpose:** Large paired datasets (test + model outputs) exceed Claude Desktop's ~31MB upload limit; split into manageable chunks while maintaining ID pairing
+  - **Features:**
+    - Typer CLI with comprehensive options (`--test`, `--model`, `--out`, `--mode`, `--examples`, `--max-mb`, `--strict`, `--id-sample-every`)
+    - Dual split modes:
+      - `by-count`: Fixed N examples per chunk (default 7)
+      - `by-size`: Dynamic chunking with max MB threshold + rollover logic
+    - Streaming I/O: Generator-based line iteration, no full file loading
+    - Validation: Strict/non-strict line count checks, optional ID sampling every N lines
+    - Summary JSON output: Aggregate stats + per-chunk metadata (ChunkInfo dataclasses)
+    - Progress logging every 10K lines
+    - Type hints and comprehensive docstrings
+  - **Usage Examples:**
+    ```bash
+    # By-count mode (default): 7 examples per chunk
+    python Phase\ 1B_2_0/split_for_claude.py --test data/test.jsonl --model data/model.jsonl --out data/chunks
+    
+    # By-size mode: stay under 25MB per chunk
+    python Phase\ 1B_2_0/split_for_claude.py --test data/test.jsonl --model data/model.jsonl --out data/chunks --mode by-size --max-mb 25
+    
+    # ID sampling validation: check ID match every 100 lines
+    python Phase\ 1B_2_0/split_for_claude.py --test data/test.jsonl --model data/model.jsonl --out data/chunks --id-sample-every 100
+    ```
+  - **Output Structure:**
+    - `{out}/chunk_001_test.jsonl`, `{out}/chunk_001_model.jsonl`, ...
+    - `{out}/summary.json` with aggregate stats and per-chunk metadata
+  - **Tests:** `tests/test_split_for_claude.py` (fixtures for count/size modes, Python 3.14 compatibility)
+  - **Dependencies:** typer>=0.15.0 (CLI framework)
+
 ### Phase 1C: GPT-5 Targeted Distillation with Bidirectional Training (5 days, $12.50) ⏳ PENDING
 - [ ] **1C.1 Generate Targeted Data** - 40K examples via Copilot targeting failure patterns
   - 12K code examples (Claude 4.5 via Copilot)
