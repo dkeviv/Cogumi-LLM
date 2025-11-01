@@ -12,19 +12,19 @@
 
 ---
 
-## 📋 CURRENT STATUS (October 30, 2025)
+## 📋 CURRENT STATUS (October 31, 2025)
 
-### ✅ Phase 1B 2.0: Re-judging (GPT5judged) COMPLETED
+### ✅ Phase 1B 2.0: Re-judging (Haiku Replay) COMPLETED
 
 - Completed full 200-batch re-judging using Haiku LLM reasoning replay backend (no external API).
 - Results: 12,669 PASS / 7,331 FAIL out of 20,000 → Pass rate 63.34% (aligned with prior Haiku analysis).
 - Copilot semantic judge (local embeddings) previously yielded 29.77% pass and is deemed too conservative; kept for analysis only.
 - Artifacts:
-   - Per-batch: `Phase 1B_2_0/data/GPT5judged/batch_*.jsonl`
-   - Aggregate: `Phase 1B_2_0/data/GPT5judged/GPT5judged_all.jsonl`
-   - Summary: `Phase 1B_2_0/data/GPT5judged/summary.json`
-   - Phase 1C feed (FAIL-only): `Phase 1B_2_0/data/GPT5judged/phase1c_failures_gpt5judged.jsonl` (7,331 rows)
-   - Stats/Sample: `Phase 1B_2_0/data/GPT5judged/phase1c_failures_stats.json`, `Phase 1B_2_0/data/GPT5judged/phase1c_failures_sample.jsonl`
+   - Per-batch: `Phase 1B_2_0/data/haiku_replay/batch_*.jsonl`
+   - Aggregate: `Phase 1B_2_0/data/haiku_replay/haiku_replay_all.jsonl`
+   - Summary: `Phase 1B_2_0/data/haiku_replay/summary.json`
+   - Phase 1C feed (FAIL-only): `Phase 1B_2_0/data/haiku_replay/phase1c_failures_haiku_replay.jsonl` (7,331 rows)
+   - Stats/Sample: `Phase 1B_2_0/data/haiku_replay/phase1c_failures_stats.json`, `Phase 1B_2_0/data/haiku_replay/phase1c_failures_sample.jsonl`
 
 Implication: Use the haiku replay judgments as the authoritative source for Phase 1C targeted distillation; copilot semantic outputs retained as auxiliary signal.
 

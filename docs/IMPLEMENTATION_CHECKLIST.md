@@ -78,14 +78,14 @@
 
 #### Additional Utility (Re-judging Pipeline)
 - [x] Script added: `Phase 1B_2_0/step7_rejudge_gpt5.py` (mock/local/gpt5/copilot/haiku backends, progress, logging, resume/clean, aggregation)
-- [x] Execute re-judging over 200 batches and produce `data/GPT5judged/` outputs
+- [x] Execute re-judging over 200 batches and produce `data/haiku_replay/` outputs
   - Copilot semantic run: 29.77% pass (auxiliary only)
   - Haiku replay run: 63.34% pass (authoritative)
-  - Summary: `Phase 1B_2_0/data/GPT5judged/summary.json`
+  - Summary: `Phase 1B_2_0/data/haiku_replay/summary.json`
 - [x] Export FAIL items for Phase 1C
-  - Output: `Phase 1B_2_0/data/GPT5judged/phase1c_failures_gpt5judged.jsonl` (7,331 rows)
-  - Stats: `Phase 1B_2_0/data/GPT5judged/phase1c_failures_stats.json`
-  - Sample (100): `Phase 1B_2_0/data/GPT5judged/phase1c_failures_sample.jsonl`
+  - Output: `Phase 1B_2_0/data/haiku_replay/phase1c_failures_haiku_replay.jsonl` (7,331 rows)
+  - Stats: `Phase 1B_2_0/data/haiku_replay/phase1c_failures_stats.json`
+  - Sample (100): `Phase 1B_2_0/data/haiku_replay/phase1c_failures_sample.jsonl`
 
 #### Additional Utility (Dataset Splitter for Claude Analysis)
 - [x] Script added: `Phase 1B_2_0/split_for_claude.py` - Split large paired JSONL files into chunks for Claude Desktop
