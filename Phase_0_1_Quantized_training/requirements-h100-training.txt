@@ -1,0 +1,34 @@
+# Golden H100 QLoRA Training Dependencies
+# Tested and verified for LLAMA-3.1-8B training on H100 80GB
+# Based on Unsloth + HuggingFace stable versions
+# Last updated: 2025-01-21
+
+# PyTorch with CUDA 12.1 (H100 requirement)
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.4.0+cu121
+torchvision==0.19.0+cu121
+torchaudio==2.4.0+cu121
+
+# Unsloth - 2x faster training with automatic flash-attention handling
+# Unsloth will install its own compatible version of bitsandbytes
+unsloth[cu121-torch240] @ git+https://github.com/unslothai/unsloth.git
+
+# Core training libraries - EXACT versions that work together
+transformers==4.46.3        # Tested with torch 2.4.0
+tokenizers==0.20.3          # Non-yanked version (0.20.4 was yanked)
+accelerate==1.2.1
+peft==0.13.2                # QLoRA/LoRA support
+# bitsandbytes - REMOVED, Unsloth installs compatible version
+datasets==3.2.0             # Dataset loading
+trl==0.12.2                 # Training utilities
+
+# Logging and monitoring
+tensorboard==2.18.0
+wandb
+
+# HuggingFace Hub
+huggingface-hub>=0.24.0
+
+# Optional but recommended
+ninja                       # Faster compilation
+packaging                   # Version checking
