@@ -123,26 +123,43 @@
 - **Value:** 2,389 high-quality corrections for training
 - **Strategy:** Use Claude for remaining 4,942 hard failures
 
-### Next Actions (Phase 1.1C + 1D)
+### Next Actions (Combined Phase 1C/1D - OPTIMIZED APPROACH)
 
-**Phase 1.1C: Training on Self-Critique (Ready to Execute)**
-- Dataset: 2,389 improved examples
-- Method: Axolotl QLoRA (rank 64, 4-bit)
+**OPTIMIZATION:** Instead of training twice (Phase 1.1C → Phase 1D), generate ALL Claude examples first, then combine with self-critique for single unified training run. **Benefits: Faster, cleaner trajectory, no intermediate model interference.**
+
+**Step 1: Generate Claude Examples (Ready to Execute)**
+- Input: 4,942 hard failures from `Phase 1B_2_0/phase1c_hard_failures.jsonl`
+- Method: GitHub Copilot (Claude Sonnet 4.5) automated generation
+- Process: For each failure → show (instruction, previous_output, reference) → AI generates improved with CoT
+- Output: ~4,942 high-quality examples
+- Duration: 2-4 hours (automated)
+- Cost: ~$150-200 (Claude API via Copilot)
+
+**Step 2: Create Bidirectional Pairs**
+- Self-critique: 2,389 → 4,778 pairs (forward + reverse)
+- Claude: 4,942 → 9,884 pairs (forward + reverse)
+- Total: ~14,662 bidirectional examples
+- Purpose: Improve task flexibility and comprehension
+
+**Step 3: Combined Smart Training (Single Run with Convergence-Based Early Stopping)**
+- Dataset: 14,662 combined examples (self-critique + Claude, both bidirectional)
+- Method: Full precision bfloat16 LoRA (rank 64)
 - Base: `Phase1A_2_0/models/phase1a_merged_10gb/` (15GB)
-- Duration: 4-5 hours on H100
-- Cost: ~$12.50
-- Expected: 63.34% → 73-75% pass rate (+10 points)
+- **Smart Features:**
+  - Early stopping: patience=3 checkpoints, validation split 5%
+  - Convergence monitoring: validation loss, perplexity, gradient norms
+  - Automatic best checkpoint restoration
+- Duration: 5-7 hours on H100 (likely stops after 1.5-2 epochs)
+- Cost: ~$15-20
+- Expected: 63.34% → 88-92% pass rate (+25-29 points in one step)
+- Output: Best converged checkpoint (~15GB)
+- Script: `Phase1A_2_0/scripts/train_phase1c_combined_smart.py`
 
-**Phase 1D: Claude Bidirectional Generation (Ready to Generate)**
-- Input: 4,942 hard failures
-- Teacher: Claude Sonnet 4.5 via API
-- Target: ~5,000 examples with CoT reasoning
-- Method: Show failure + reference → Generate improved with explanation
-- Bidirectional: Forward + reverse pairs (~10K total)
-- Cost: ~$165 ($150 Claude + $15 training)
-- Expected: 73-75% → 88-92% pass rate (+15 points)
-
-**Combined Impact:** 63.34% → 88-92% (+25-29 points total)
+**Efficiency vs Two-Step:**
+- Time: 5-7h (smart) vs 9-11h (two-step) = **4-6h savings**
+- Cost: $15-20 (smart) vs $27.50 (two-step) = **$7-12 savings**
+- Quality: Stops at optimal convergence point (no overfitting)
+- Complexity: Single clean trajectory with intelligent stopping
 
 ---
 
