@@ -69,26 +69,29 @@ def load_model(model_path: str, device: str = "cuda", load_in_4bit: bool = False
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    torch_dtype = torch.float16 if device == "cuda" else torch.float32
-    quant_cfg = None
+    
+    model_kwargs = {"trust_remote_code": True}
+    
     if load_in_4bit:
         if not _HAS_BNB:
             logger.warning("bitsandbytes not available; proceeding without 4-bit quantization")
+            model_kwargs["torch_dtype"] = torch.float16 if device == "cuda" else torch.float32
+            model_kwargs["device_map"] = "auto" if device == "cuda" else None
         else:
+            # For 4-bit quantization, let bitsandbytes handle device placement
             quant_cfg = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",
                 bnb_4bit_use_double_quant=True,
                 bnb_4bit_compute_dtype=torch.bfloat16 if device == "cuda" else torch.float32,
             )
+            model_kwargs["quantization_config"] = quant_cfg
+            model_kwargs["device_map"] = "auto"
+    else:
+        model_kwargs["torch_dtype"] = torch.float16 if device == "cuda" else torch.float32
+        model_kwargs["device_map"] = "auto" if device == "cuda" else None
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        device_map="auto" if device == "cuda" else None,
-        torch_dtype=torch_dtype,
-        trust_remote_code=True,
-        quantization_config=quant_cfg,
-    )
+    model = AutoModelForCausalLM.from_pretrained(model_path, **model_kwargs)
     return model, tokenizer
 
 
@@ -187,8 +190,8 @@ def main() -> None:
     if args.mode == "hf":
         assert args.model_path, "--model_path is required when --mode hf"
         model, tokenizer = load_model(args.model_path, args.device, load_in_4bit=args.load_in_4bit)
-        # Move to MPS explicitly if requested
-        if args.device == "mps":
+        # Move to MPS explicitly if requested (but not for quantized models)
+        if args.device == "mps" and not args.load_in_4bit:
             try:
                 model.to("mps")
             except Exception as e:

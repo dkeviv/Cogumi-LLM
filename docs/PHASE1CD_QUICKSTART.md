@@ -56,7 +56,7 @@ export OPENAI_API_KEY="your-key"
 export API_PROVIDER="openai"
 export MODEL="gpt-4o-mini"
 
-./Phase1A_2_0/scripts/run_phase1c_combined_workflow.sh
+./src/phase1c_targeted_distillation/run_phase1c_combined_workflow.sh
 ```
 
 **The script will:**
@@ -81,7 +81,7 @@ export MODEL="gpt-4o-mini"
 **Cost Estimation First:**
 ```bash
 # Estimate costs before generating
-python Phase1A_2_0/scripts/generate_claude_examples.py \
+python src/phase1c_targeted_distillation/generate_claude_examples.py \
   --input "./Phase 1B_2_0/data/Phase 1B_2_0/phase1c_hard_failures.jsonl" \
   --output "data/phase1c/improved_examples.jsonl" \
   --api_provider openai \
@@ -98,7 +98,7 @@ python Phase1A_2_0/scripts/generate_claude_examples.py \
 # Using OpenAI GPT-4o-mini (cheaper)
 export OPENAI_API_KEY="your-key"
 
-python Phase1A_2_0/scripts/generate_claude_examples.py \
+python src/phase1c_targeted_distillation/generate_claude_examples.py \
   --input "./Phase 1B_2_0/data/Phase 1B_2_0/phase1c_hard_failures.jsonl" \
   --output "data/phase1c/improved_examples.jsonl" \
   --api_provider openai \
@@ -116,7 +116,7 @@ python Phase1A_2_0/scripts/generate_claude_examples.py \
 ```bash
 export ANTHROPIC_API_KEY="your-key"
 
-python Phase1A_2_0/scripts/generate_claude_examples.py \
+python src/phase1c_targeted_distillation/generate_claude_examples.py \
   --input "./Phase 1B_2_0/data/Phase 1B_2_0/phase1c_hard_failures.jsonl" \
   --output "data/phase1c/improved_examples_claude.jsonl" \
   --api_provider claude \
@@ -133,7 +133,7 @@ python Phase1A_2_0/scripts/generate_claude_examples.py \
 ### **Step 2: Create Bidirectional Pairs (Self-Critique)**
 
 ```bash
-python Phase1A_2_0/scripts/create_bidirectional_pairs.py \
+python src/phase1c_targeted_distillation/create_bidirectional_pairs.py \
   --input "./Phase 1B_2_0/data/data/phase1c/phase1c_self_critique_train.jsonl" \
   --output "data/phase1c/self_critique_bidirectional.jsonl" \
   --source_label "self_critique" \
@@ -147,7 +147,7 @@ python Phase1A_2_0/scripts/create_bidirectional_pairs.py \
 **Preview Mode (Optional):**
 ```bash
 # Preview 3 examples before generating
-python Phase1A_2_0/scripts/create_bidirectional_pairs.py \
+python src/phase1c_targeted_distillation/create_bidirectional_pairs.py \
   --input "./Phase 1B_2_0/data/data/phase1c/phase1c_self_critique_train.jsonl" \
   --output "data/phase1c/self_critique_bidirectional.jsonl" \
   --source_label "self_critique" \
@@ -159,7 +159,7 @@ python Phase1A_2_0/scripts/create_bidirectional_pairs.py \
 ### **Step 3: Create Bidirectional Pairs (Claude/GPT Examples)**
 
 ```bash
-python Phase1A_2_0/scripts/create_bidirectional_pairs.py \
+python src/phase1c_targeted_distillation/create_bidirectional_pairs.py \
   --input "data/phase1c/improved_examples.jsonl" \
   --output "data/phase1c/claude_bidirectional.jsonl" \
   --source_label "claude_generation" \
@@ -193,7 +193,7 @@ wc -l data/phase1c/*.jsonl
 ### **Step 5: Smart Training with Early Stopping**
 
 ```bash
-python Phase1A_2_0/scripts/train_phase1c_combined_smart.py \
+python src/phase1c_targeted_distillation/train_phase1c_combined_smart.py \
   --model_name Phase1A_2_0/models/phase1a_merged_10gb \
   --dataset data/phase1c/combined_training_bidirectional.jsonl \
   --output_dir data/checkpoints/phase1c_combined \
@@ -236,7 +236,7 @@ tensorboard --logdir data/logs/phase1c_combined --port 6006
 ls -lht data/checkpoints/phase1c_combined/checkpoint-*
 
 # Resume from checkpoint
-python Phase1A_2_0/scripts/train_phase1c_combined_smart.py \
+python src/phase1c_targeted_distillation/train_phase1c_combined_smart.py \
   --model_name Phase1A_2_0/models/phase1a_merged_10gb \
   --dataset data/phase1c/combined_training_bidirectional.jsonl \
   --output_dir data/checkpoints/phase1c_combined \
@@ -314,7 +314,7 @@ python Phase1B_2_0/step3_llm_evaluation.py \
 ```bash
 # Script automatically detects existing examples and skips them
 # Just re-run the same command - it will continue from where it stopped
-python Phase1A_2_0/scripts/generate_claude_examples.py [same args]
+python src/phase1c_targeted_distillation/generate_claude_examples.py [same args]
 ```
 
 ---

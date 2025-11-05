@@ -96,9 +96,40 @@ def evaluate_self_critique(cfg: EvalConfig) -> Tuple[int, int, float]:
 
     model = SentenceTransformer(cfg.model_name)
 
-    instructions = [r.get("instruction", "") for r in records]
-    finals = [r.get("final_answer", "") for r in records]
-    refs = [r.get("reference_answer", "") for r in records]
+    # Defensive extraction: coerce to strings and handle missing fields gracefully
+    instructions: List[str] = []
+    finals: List[str] = []
+    refs: List[str] = []
+    bad_records: int = 0
+    for idx, r in enumerate(records):
+        instr = r.get("instruction", "")
+        final = r.get("final_answer", r.get("final", r.get("answer", "")))
+        ref = r.get("reference_answer", r.get("reference", r.get("ref", "")))
+
+        # Coerce non-string types to string safely
+        try:
+            instr_s = instr if isinstance(instr, str) else json.dumps(instr, ensure_ascii=False)
+        except Exception:
+            instr_s = str(instr)
+
+        try:
+            final_s = final if isinstance(final, str) else json.dumps(final, ensure_ascii=False)
+        except Exception:
+            final_s = str(final)
+
+        try:
+            ref_s = ref if isinstance(ref, str) else json.dumps(ref, ensure_ascii=False)
+        except Exception:
+            ref_s = str(ref)
+
+        # If final or ref are empty, count as bad record but still include empty string
+        if not final_s or not ref_s:
+            bad_records += 1
+            logger.debug(f"Record {idx} missing final or reference text - id={r.get('id')}")
+
+        instructions.append(instr_s)
+        finals.append(final_s)
+        refs.append(ref_s)
 
     # Combine to reduce encoder passes: encode finals and refs separately
     with Progress(
@@ -113,13 +144,14 @@ def evaluate_self_critique(cfg: EvalConfig) -> Tuple[int, int, float]:
 
         final_embs: List[np.ndarray] = []
         for chunk in batched(finals, cfg.batch_size):
-            embs = model.encode(chunk, batch_size=min(cfg.batch_size, len(chunk)), normalize_embeddings=False, show_progress_bar=False)
+            # chunk is a list of strings; sentence-transformers requires strings or list[str]
+            embs = model.encode(list(map(lambda x: x if isinstance(x, str) else str(x), chunk)), batch_size=min(cfg.batch_size, len(chunk)), normalize_embeddings=False, show_progress_bar=False)
             final_embs.extend(embs)
             progress.advance(task_f, advance=len(chunk))
 
         ref_embs: List[np.ndarray] = []
         for chunk in batched(refs, cfg.batch_size):
-            embs = model.encode(chunk, batch_size=min(cfg.batch_size, len(chunk)), normalize_embeddings=False, show_progress_bar=False)
+            embs = model.encode(list(map(lambda x: x if isinstance(x, str) else str(x), chunk)), batch_size=min(cfg.batch_size, len(chunk)), normalize_embeddings=False, show_progress_bar=False)
             ref_embs.extend(embs)
             progress.advance(task_r, advance=len(chunk))
 

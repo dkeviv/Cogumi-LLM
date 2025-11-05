@@ -1,0 +1,112 @@
+Below worked, document it appropriately . Remove all the old references. Call it golden configuration.
+
+pip uninstall -y torch torchvision torchaudio torch xformers transformers \
+    tokenizers psutil flash-attn bitsandbytes peft accelerate trl \
+    datasets unsloth unsloth-zoo huggingface-hub tensorboard wandb \
+    numpy scipy scikit-learn rich tqdm jsonlines ninja packaging \
+    diffusers typer-slim shellingham
+
+
+# 1. PyTorch 2.6.0 + CUDA 12.4
+pip install --force-reinstall torch==2.6.0+cu124 torchvision==0.21.0 torchaudio==2.6.0 \
+    --index-url https://download.pytorch.org/whl/cu124
+
+# 2. FlashAttention 2.8.2
+pip install https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.3.14/flash_attn-2.7.4+cu124torch2.6-cp310-cp310-linux_x86_64.whl
+
+# 3. psutil
+pip install psutil==7.1.2
+
+# 4. bitsandbytes
+pip install bitsandbytes==0.48.1
+
+# 5. Transformers ecosystem
+pip install transformers==4.43.3 tokenizers==0.19.1
+pip install peft==0.11.1 accelerate==1.11.0 trl==0.9.6 datasets==4.3.0
+
+# 6. xformers
+pip install xformers==0.0.28.post2 --no-deps
+
+# 8. Other dependencies
+pip install numpy==1.26.4 scipy==1.13.0 scikit-learn==1.4.2 \
+    huggingface-hub==0.36.0 tensorboard==2.16.2 wandb==0.17.0 \
+    tqdm==4.66.4 rich==13.7.1 jsonlines==4.0.0 ninja==1.11.1 packaging==24.0pip install  scipy==1.13.0 scikit-learn==1.4.2 \
+    huggingface-hub==0.36.0 tensorboard==2.16.2 wandb==0.17.0 \
+    tqdm==4.66.4 rich==13.7.1 jsonlines==4.0.0 ninja==1.11.1 
+
+triton, nvidia-cusparselt-cu12, mpmath, typing-extensions, sympy, pillow, nvidia-nvtx-cu12, nvidia-nvjitlink-cu12, nvidia-nccl-cu12, nvidia-curand-cu12, nvidia-cufft-cu12, nvidia-cuda-runtime-cu12, nvidia-cuda-nvrtc-cu12, nvidia-cuda-cupti-cu12, nvidia-cublas-cu12, numpy, networkx, MarkupSafe, fsspec, filelock, nvidia-cusparse-cu12, nvidia-cudnn-cu12, jinja2, nvidia-cusolver-cu12, torch, torchvision, torchaudio
+
+# 7. Unsloth
+pip install "unsloth[cu124-torch260] @ git+https://github.com/unslothai/unsloth.git@July-2024" --no-deps
+
+===============================================================================
+
+CRITICAL COMPONENTS:
+--------------------------------------------------------------------------------
+✅ Python: 3.10.12 (compatible)
+✅ PyTorch: 2.6.0+cu124
+✅ CUDA Available: True
+✅ CUDA Version: 12.4
+✅ GPU: NVIDIA H100 NVL
+✅ H100 GPU Detected: Optimal configuration
+✅ Transformers: 4.43.3
+✅ PEFT: 0.11.1
+✅ Accelerate: 1.11.0
+Unsloth: Your Flash Attention 2 installation seems to be broken?
+A possible explanation is you have a new CUDA version which isn't
+yet compatible with FA2? Please file a ticket to Unsloth or FA2.
+We shall now use Xformers instead, which gets a 0.01% performance hit.
+We found this negligible impact by benchmarking on 1x A100.
+WARNING[XFORMERS]: xFormers can't load C++/CUDA extensions. xFormers was built for:
+    PyTorch 2.5.0+cu121 with CUDA 1201 (you have 2.6.0+cu124)
+    Python  3.10.15 (you have 3.10.12)
+  Please reinstall xformers (see https://github.com/facebookresearch/xformers#installing-xformers)
+  Memory-efficient attention, SwiGLU, sparse and more won't be available.
+  Set XFORMERS_MORE_DETAILS=1 for more details
+/workspace/Cogumi-LLM/Phase1A_2_0/scripts/venv_phase1a_2_0/lib/python3.10/site-packages/unsloth/models/_utils.py:429: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  def forward(ctx, forward_function, hidden_states, *args):
+/workspace/Cogumi-LLM/Phase1A_2_0/scripts/venv_phase1a_2_0/lib/python3.10/site-packages/unsloth/models/_utils.py:441: FutureWarning: `torch.cuda.amp.custom_bwd(args...)` is deprecated. Please use `torch.amp.custom_bwd(args..., device_type='cuda')` instead.
+  def backward(ctx, dY):
+/workspace/Cogumi-LLM/Phase1A_2_0/scripts/venv_phase1a_2_0/lib/python3.10/site-packages/unsloth/kernels/fast_lora.py:65: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  def forward(ctx, X : torch.Tensor,
+/workspace/Cogumi-LLM/Phase1A_2_0/scripts/venv_phase1a_2_0/lib/python3.10/site-packages/unsloth/kernels/fast_lora.py:91: FutureWarning: `torch.cuda.amp.custom_bwd(args...)` is deprecated. Please use `torch.amp.custom_bwd(args..., device_type='cuda')` instead.
+  def backward(ctx, dY : torch.Tensor):
+/workspace/Cogumi-LLM/Phase1A_2_0/scripts/venv_phase1a_2_0/lib/python3.10/site-packages/unsloth/kernels/fast_lora.py:227: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  def forward(ctx, X : torch.Tensor,
+/workspace/Cogumi-LLM/Phase1A_2_0/scripts/venv_phase1a_2_0/lib/python3.10/site-packages/unsloth/kernels/fast_lora.py:248: FutureWarning: `torch.cuda.amp.custom_bwd(args...)` is deprecated. Please use `torch.amp.custom_bwd(args..., device_type='cuda')` instead.
+  def backward(ctx, dQ, dK, dV):
+/workspace/Cogumi-LLM/Phase1A_2_0/scripts/venv_phase1a_2_0/lib/python3.10/site-packages/unsloth/kernels/fast_lora.py:356: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  def forward(ctx, X : torch.Tensor,
+/workspace/Cogumi-LLM/Phase1A_2_0/scripts/venv_phase1a_2_0/lib/python3.10/site-packages/unsloth/kernels/fast_lora.py:367: FutureWarning: `torch.cuda.amp.custom_bwd(args...)` is deprecated. Please use `torch.amp.custom_bwd(args..., device_type='cuda')` instead.
+  def backward(ctx, dY : torch.Tensor):
+🦥 Unsloth: Will patch your computer to enable 2x faster free finetuning.
+✅ Unsloth: Installed (2-3× speedup enabled)
+
+PERFORMANCE COMPONENTS:
+--------------------------------------------------------------------------------
+✅ Flash Attention: 2.7.4 (1.5× speedup enabled)
+✅ BitsAndBytes: 0.48.1
+
+SUPPORTING LIBRARIES:
+--------------------------------------------------------------------------------
+✅ NumPy: 1.26.4 (correct version)
+✅ SciPy: 1.13.0
+✅ Scikit-learn: 1.4.2
+✅ Datasets: 4.3.0
+
+FUNCTIONAL TESTS:
+--------------------------------------------------------------------------------
+✅ GPU Computation: Working (PyTorch can use GPU)
+✅ Unsloth Integration: Ready (can load Llama 3.1 models)
+✅ Flash Attention: Functional (can accelerate attention)
+
+================================================================================
+CONFIGURATION SUMMARY:
+================================================================================
+
+Configuration Score: 39/39 (100.0%)
+
+✅ EXCELLENT - Optimal configuration for H100 training
+   Expected performance: 4-6× faster than baseline
+   Estimated cost: $20-30 for full Phase 1A training
+======================================================
