@@ -1,32 +1,82 @@
 # EXECUTION PLAN - LLAMA-3.1-8B COGUMI-LLM
 
-**🎯 Master Reference:** See `docs/dev/COMPLETE_ENHANCEMENT_TABLE.md` for comprehensive phase details
+**🎯 Master Reference:** See `docs/dev/**Final Updated Pipeline.md` for comprehensive 9-phase system (1204 lines)
 
-**Version:** 3.0 (Updated October 2025)  
-**Last Updated:** October 30, 2025
+**Version:** 4.0 (Major Pipeline Refinement)  
+**Last Updated:** November 4, 2025
 
 ---
 
 ## PROJECT OVERVIEW
 
 **Student Model:** Llama-3.1-8B-Instruct (8.3B parameters)  
-**Project Goal:** 703MB MVP system beating GPT-4 on 3 domains + few-shot capable
+**Project Goal:** 890MB MVP system with speed infrastructure beating GPT-4 on 3 domains + mobile mode
 
-**MVP System:**
-- Size: 703MB (520MB base + 135MB modifiers + 28MB infrastructure + 12MB meta-learning)
-- Performance: Beats GPT-4 on code (115-130%), reasoning (100-108%), automation (105-118%)
-- Timeline: 17 weeks
-- Budget: $1,269.50
+**MVP System (Phases 0-9):**
+- **Size:** 890MB (540MB base + 140MB draft + 145MB modifiers + 17MB routers + 12MB meta + 36MB optimizations)
+- **Performance:** Beats GPT-4 on code (115-130%), reasoning (100-108%), automation (105-118%)
+- **Speed:** 135 tok/s desktop (full optimization), 300 tok/s mobile (draft mode)
+- **Timeline:** 17 weeks
+- **Budget:** $1,980
 
-**Post-MVP System:**
-- Size: +208MB (10MB critique + 2MB adaptive + 196MB modifiers)
-- Performance: 8 domains covered + all enhancements
-- Timeline: +13 weeks
-- Budget: +$1,215
-- **Total System: 911MB, 30 weeks, $2,484.50**
+**Mobile Mode (Breakthrough Capability):**
+- **Size:** 295MB (draft + modifiers, NO base model)
+- **Speed:** 300 tok/s (draft generates without verification)
+- **Quality:** 88% GPT-4 (draft alone), 92-108% GPT-4 (with modifiers)
+- **Devices:** iPhone 15 Pro (200+ tps), Samsung S24 (250+ tps), iPad Pro M2 (280+ tps)
 
-**Automation:** 95% via Claude 4.5/Copilot script generation  
-**Status:** Phase 0 Complete ✅ | Phase 1A 80% Complete ⏳
+**Post-MVP System (Phases 10-14):**
+- **Size:** +221MB enhancements (semantic cache, quality improvements, 5 more modifiers)
+- **Performance:** 8 domains covered, 465 tok/s with semantic cache
+- **Timeline:** +9 weeks
+- **Budget:** +$1,065
+- **Total System: 1,111MB, 26 weeks, $3,045**
+
+**Automation:** 93% via Claude 4.5/Copilot script generation  
+**Status:** Phase 0 Complete ✅ | Phase 1A Complete ✅ | Phase 1B Complete ✅ | Phase 1C Complete ✅ | Phase 1.1C Ready | Phase 1D Ready
+
+---
+
+## KEY ARCHITECTURAL CHANGES (November 2025)
+
+**Major Pipeline Refinement - 9-Phase System:**
+
+1. **Speed Infrastructure (NEW Phases 1E-1H):**
+   - Draft model distillation: 140MB, 150 tok/s baseline
+   - Speculative decoding: 3× speedup (k=5 tokens, 75% accept)
+   - Mixture of Depths: 2× speedup (12MB router, 50% layer skip)
+   - KV cache INT4: 1.5× speedup (4× memory reduction)
+   - **Cumulative:** 15 tok/s → 135 tok/s (9× improvement)
+
+2. **Mobile Mode Architecture (BREAKTHROUGH):**
+   - Components: Draft (140MB) + modifiers (43-52MB) + routers (17MB)
+   - Total: 295MB (NO base model needed!)
+   - Speed: 300 tok/s (draft generates without verification)
+   - Quality: 88% GPT-4 (draft), 92-108% (with modifiers)
+   - Devices: Phones, tablets with near-GPT-4 quality
+
+3. **Adaptive Router Enhancement:**
+   - Predictive pre-loading with progressive confidence thresholds
+   - Thresholds: 85%/75%/65% after 3/4/5 tokens
+   - Pre-load accuracy: 93% (vs 86% fixed timing)
+   - Average latency: 98ms (only 2ms penalty vs aggressive)
+
+4. **Enhanced Compression Strategy:**
+   - Dual GGUF variants: Q5_K_M (600MB desktop) + Q4_K_M (480MB mobile)
+   - Compression ratio: 25.9× (14GB → 540MB)
+   - Quality trajectory: 88-92% (Phase 1D) → 89-91% (after recovery)
+
+5. **Updated System Targets:**
+   - **MVP:** 668MB → 890MB (+222MB for speed infrastructure)
+   - **Speed:** 90 tok/s → 135 tok/s (+50% faster desktop)
+   - **Cost:** $1,269.50 → $1,980 (+$710.50 for optimizations)
+   - **Timeline:** 17 weeks (unchanged)
+
+**Rationale:**
+- Speed infrastructure essential for competitive UX
+- Mobile mode unlocks massive market opportunity
+- Adaptive pre-loading reduces wrong predictions by 46%
+- Quality improvements across all domains (92-135% GPT-4)
 
 ---
 
@@ -35,16 +85,17 @@
 | Phase | Duration | Cost | Status |
 |-------|----------|------|--------|
 | **Phase 0: Dataset** | Complete | $0 | ✅ DONE |
-| **Phase 1: Base Training** | 4 weeks | $237.50 | ⏳ 80% Complete |
+| **Phase 1: Base Training** | 4 weeks | $565 | ✅ DONE |
+| **Phase 1E-1H: Speed Stack** | 2 weeks | $140 | ⏳ Pending |
 | **Phase 2: Compression** | 6 weeks | $375 | ⏳ Pending |
-| **Phase 3-5: MVP Modifiers** | 4 weeks | $577 | ⏳ Pending |
-| **Phase 6: Router System** | 2 weeks | $75 | ⏳ Pending |
-| **Phase 7: Meta-Learning** | 2 weeks | $85 | ⏳ Pending |
-| **Phase 8: Deployment** | 1 week | $0 | ⏳ Pending |
+| **Phase 3-5: Domain Modifiers** | 4 weeks | $610 | ⏳ Pending |
+| **Phase 6: Adaptive Router** | 2 weeks | $75 | ⏳ Pending |
+| **Phase 7: Meta-Learning** | 1 week | $70 | ⏳ Pending |
+| **Phase 8: Deployment** | 1 week | $45 | ⏳ Pending |
 | **Phase 9: Validation** | 1 week | $100 | ⏳ Pending |
-| **MVP TOTAL** | **17 weeks** | **$1,269.50** | **6% Done** |
-| **Phase 10-15: Post-MVP** | +13 weeks | +$1,215 | ⏳ Pending |
-| **FULL SYSTEM** | **30 weeks** | **$2,484.50** | **6% Done** |
+| **MVP TOTAL** | **17 weeks** | **$1,980** | **32% Done** |
+| **Phase 10-14: Post-MVP** | +9 weeks | +$1,065 | ⏳ Pending |
+| **FULL SYSTEM** | **26 weeks** | **$3,045** | **32% Done** |
 
 ---
 

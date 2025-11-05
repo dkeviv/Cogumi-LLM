@@ -1,8 +1,10 @@
-# TECHNICAL SPECIFICATION - LLAMA-3.2-8B COGUMI-LLM
+# TECHNICAL SPECIFICATION - LLAMA-3.1-8B COGUMI-LLM
 
-**Version:** 2.2
-**Date:** October 30, 2025
-**Status:** Phase 0 Complete | Phase 1A In Progress | Phase 1B Complete ✅ | Phase 1C Ready
+**Version:** 3.0
+**Date:** November 4, 2025
+**Status:** Phase 0 Complete ✅ | Phase 1A Complete ✅ | Phase 1B Complete ✅ | Phase 1C Complete ✅ | Phase 1.1C Ready | Phase 1D Ready
+
+**Master Reference:** `docs/dev/**Final Updated Pipeline.md` (1204 lines, comprehensive 9-phase system)
 
 ---
 
@@ -94,18 +96,73 @@ Future flexibility: Language modifiers can reactivate unused tokens
 
 ## EXECUTIVE SUMMARY
 
-Cogumi-LLM is a 668MB AI model system that beats GPT-4 on code, reasoning, and automation tasks through extreme compression and domain-specific modifiers. The system uses **LLAMA-3.2-8B** as the student model, applying English-only vocabulary optimization, failure-based cascaded distillation, 95% compression via Neural Magic pruning and AWQ quantization, and hot-swappable domain modifiers trained exclusively on base model failures.
+Cogumi-LLM is an **890MB AI model system** that beats GPT-4 on code (115-130%), reasoning (100-108%), and automation (105-118%) tasks through **9-phase comprehensive pipeline** including speed infrastructure, extreme compression, and domain-specific modifiers. The system uses **LLAMA-3.1-8B-Instruct** (8.3B parameters) as the student model, applying speed optimization stack (draft model + speculative decoding + Mixture of Depths + KV cache INT4), 25.9× compression via Neural Magic pruning and AWQ quantization, dual GGUF variants for desktop/mobile, and hot-swappable domain modifiers.
 
 **Key Achievements:**
 
-- ✅ **Phase 0 Complete**: 640K curated examples via multi-teacher distillation with advanced deduplication
-- 🎯 **Target**: 668MB system (520MB base + 3×40-50MB modifiers) beating GPT-4
-- 💰 **Budget**: $1,717 for MVP, 93% automated via Claude 4.5 code generation
-- ⚡ **Performance**: 60+ tokens/sec on M4 Pro Mac, 80+ on RTX 4090
+- ✅ **Phase 0 Complete**: 600K curated examples via multi-teacher distillation with MinHash LSH deduplication
+- ✅ **Phase 1A Complete**: 15GB full precision model trained ($565, 63.34% GPT-4)
+- ✅ **Phase 1B Complete**: 7,331 failures identified via Claude Haiku judging
+- ✅ **Phase 1C Complete**: 2,389 improved via self-critique, 4,942 hard failures extracted
+- 🎯 **Target**: 890MB desktop system (540MB base + 140MB draft + 145MB modifiers + 17MB routers + 12MB meta + 36MB optimizations)
+- 🎯 **Mobile Mode**: 295MB (draft + modifiers), 300 tok/s, 92% GPT-4 quality
+- 💰 **Budget**: $1,980 MVP (Phases 0-9), $1,065 post-MVP (Phases 10-14)
+- ⚡ **Performance**: 135 tokens/sec desktop (full optimization), 300 tok/s mobile (draft mode)
 
 ---
 
 ## ARCHITECTURE OVERVIEW
+
+### Desktop Mode (890MB, 135 tok/s, 92-135% GPT-4)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    USER QUERY                                │
+└──────────────────────┬──────────────────────────────────────┘
+                       ▼
+            ┌──────────────────────┐
+            │ ADAPTIVE ROUTER (13MB)│
+            │ Predictive Pre-Loading│
+            │ 85%/75%/65% Thresholds│
+            │ After 3/4/5 tokens    │
+            └─────────┬─────────────┘
+                      │
+         ┌────────────┴────────────┐
+         ▼                         ▼
+┌────────────────┐        ┌────────────────────┐
+│ HIGH CONFIDENCE│        │  LOW CONFIDENCE    │
+│    (≥85%)      │        │     (<65%)         │
+│ 65% of queries │        │  3% of queries     │
+└────────┬───────┘        └──────────┬─────────┘
+         │                           │
+         ▼                           ▼
+  ┌─────────────┐         ┌─────────────────────┐
+  │  BASE MODEL │         │  BASE + MODIFIER    │
+  │   540MB     │         │  540MB + 43-52MB    │
+  │ 65-80 tps   │         │   50-65 tps         │
+  └─────────────┘         └──────────┬──────────┘
+                                     │
+                    ┌────────────────┼────────────────┐
+                    ▼                ▼                ▼
+              ┌──────────┐    ┌──────────┐    ┌──────────┐
+              │   CODE   │    │REASONING │    │AUTOMATION│
+              │   50MB   │    │   52MB   │    │   43MB   │
+              │115-130%  │    │100-108%  │    │105-118%  │
+              │  GPT-4   │    │  GPT-4   │    │  GPT-4   │
+              └──────────┘    └──────────┘    └──────────┘
+
+         ┌─────────────────────────────────────────┐
+         │     SPEED OPTIMIZATION STACK            │
+         ├─────────────────────────────────────────┤
+         │ • Draft Model (140MB, 150 tok/s)        │
+         │ • Speculative Decoding (3× speedup)     │
+         │ • Mixture of Depths (2× speedup)        │
+         │ • KV Cache INT4 (1.5× speedup)          │
+         │ → 15 tok/s → 135 tok/s (9× improvement) │
+         └─────────────────────────────────────────┘
+```
+
+### Mobile Mode (295MB, 300 tok/s, 92% GPT-4)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -115,7 +172,7 @@ Cogumi-LLM is a 668MB AI model system that beats GPT-4 on code, reasoning, and a
             ┌──────────────────────┐
             │   ROUTER (13MB)       │
             │  Confidence-Based     │
-            │  80% Threshold        │
+            │  Query Classification │
             └─────────┬─────────────┘
                       │
          ┌────────────┴────────────┐
@@ -127,19 +184,28 @@ Cogumi-LLM is a 668MB AI model system that beats GPT-4 on code, reasoning, and a
          │                           │
          ▼                           ▼
   ┌─────────────┐         ┌─────────────────────┐
-  │  BASE MODEL │         │  BASE + MODIFIER    │
-  │   520MB     │         │  520MB + 40-50MB    │
-  │   60 tps    │         │      50 tps         │
+  │ DRAFT MODEL │         │  DRAFT + MODIFIER   │
+  │   140MB     │         │  140MB + 43-52MB    │
+  │  300 tps    │         │     250 tps         │
+  │  88% GPT-4  │         │   100-108% GPT-4    │
   └─────────────┘         └──────────┬──────────┘
                                      │
                     ┌────────────────┼────────────────┐
                     ▼                ▼                ▼
               ┌──────────┐    ┌──────────┐    ┌──────────┐
               │   CODE   │    │REASONING │    │AUTOMATION│
-              │   47MB   │    │   48MB   │    │   40MB   │
+              │   50MB   │    │   52MB   │    │   43MB   │
               │115-130%  │    │100-108%  │    │105-118%  │
               │  GPT-4   │    │  GPT-4   │    │  GPT-4   │
               └──────────┘    └──────────┘    └──────────┘
+
+         ┌─────────────────────────────────────────┐
+         │   MOBILE MODE BREAKTHROUGH:             │
+         │   • NO BASE MODEL (saves 540MB)         │
+         │   • Draft generates without verify      │
+         │   • 300 tok/s (2× faster than desktop)  │
+         │   • 295MB fits on phones/tablets        │
+         └─────────────────────────────────────────┘
 ```
 
 ---
