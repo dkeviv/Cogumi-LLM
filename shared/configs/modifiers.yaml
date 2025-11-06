@@ -1,0 +1,260 @@
+# Domain Modifiers Configuration (Phase 3)
+# 3-tier cascaded teaching strategy for specialized domain adapters
+
+# ============================================================================
+# SHARED CONFIGURATION (All Modifiers)
+# ============================================================================
+shared:
+  base_model: models/phase2e_recovered_520mb
+  test_size: 12000                    # Test base on 12K domain tasks
+  
+  # 3-Tier Teaching Strategy
+  teaching_tiers:
+    tier1:
+      coverage: 0.60-0.70             # Handle 60-70% of failures
+      cost_multiplier: 0.1            # Cheap/free models
+      
+    tier2:
+      coverage: 0.20-0.25             # Handle 20-25% of remaining
+      cost_multiplier: 1.0            # Mid-tier models (GPT-4o, DeepSeek)
+      
+    tier3:
+      coverage: 0.10-0.15             # Handle hardest 10-15%
+      cost_multiplier: 10.0           # GPT-5 for elite cases
+  
+  # Training Configuration
+  training:
+    adapter: lora
+    lora_alpha: 128
+    lora_dropout: 0.05
+    lora_target_modules:
+      - q_proj
+      - k_proj
+      - v_proj
+      - o_proj
+      - gate_proj
+      - up_proj
+      - down_proj
+    learning_rate: 2.0e-6
+    epochs: 5
+    gradient_accumulation_steps: 8
+    micro_batch_size: 4
+    bf16: true
+    
+  # Compression
+  compression:
+    initial_size: 260MB               # Uncompressed LoRA adapter
+    target_size: 40-48MB              # After pruning
+    sparsity_levels: [0.78, 0.82, 0.85]  # Test multiple levels
+    validate_threshold: 1.15          # Must exceed 115% GPT-4 for code, etc.
+
+# ============================================================================
+# CODE MODIFIER (Week 11-12, $200, 47MB)
+# ============================================================================
+code_modifier:
+  target_performance: 115-130% GPT-4
+  output_size: 47MB
+  lora_r: 128                         # Highest rank for complexity
+  
+  # Benchmarks
+  benchmarks:
+    - HumanEval                       # Python code generation
+    - MBPP                            # Mostly Basic Programming Problems
+    - LiveCodeBench                   # Real-world coding tasks
+  
+  # Teachers
+  teachers:
+    tier1:
+      model: qwen-coder-480b
+      cost_per_1k: $0.01
+      num_examples: 9000
+      expected_cost: $65
+      
+    tier2:
+      model: deepseek-coder-v2-236b
+      cost_per_1k: $0.14
+      num_examples: 2000
+      expected_cost: $60
+      
+    tier3:
+      model: gpt-5
+      cost_per_1k: $10.00
+      num_examples: 1500
+      expected_cost: $75
+  
+  # Total: 12.5K examples, $200
+
+# ============================================================================
+# REASONING MODIFIER (Week 12-13, $207, 48MB)
+# ============================================================================
+reasoning_modifier:
+  target_performance: 100-108% GPT-4
+  output_size: 48MB
+  lora_r: 112                         # Moderate rank
+  
+  # Benchmarks
+  benchmarks:
+    - MMLU                            # Massive Multitask Language Understanding
+    - BBH                             # Big-Bench Hard
+    - ARC                             # AI2 Reasoning Challenge
+    - LogicalReasoning                # Custom logical reasoning tasks
+  
+  # Teachers
+  teachers:
+    tier1:
+      model: groq-llama-405b          # FREE on Groq
+      cost_per_1k: $0.00
+      num_examples: 12000
+      expected_cost: $0
+      
+    tier2:
+      model: gpt-4o
+      cost_per_1k: $2.50
+      num_examples: 3000
+      expected_cost: $75
+      
+    tier3:
+      model: gpt-5
+      prompt_template: "Think step-by-step:\n{query}"  # COT prompting
+      cost_per_1k: $14.00             # Higher due to COT
+      num_examples: 2000
+      expected_cost: $95               # Includes COT overhead
+  
+  # Total: 17K examples, $207
+
+# ============================================================================
+# AUTOMATION MODIFIER (Week 13-14, $170, 40MB)
+# ============================================================================
+automation_modifier:
+  target_performance: 105-118% GPT-4
+  output_size: 40MB
+  lora_r: 96                          # Lower rank for simpler patterns
+  
+  # Benchmarks
+  benchmarks:
+    - ToolBench                       # Tool use and API calls
+    - WorkflowQA                      # Multi-step task planning
+    - APIGen                          # API integration tasks
+  
+  # Teachers
+  teachers:
+    tier1:
+      model: claude-3.5-sonnet
+      cost_per_1k: $0.80
+      num_examples: 8000
+      expected_cost: $65
+      
+    tier2:
+      model: gpt-4o
+      cost_per_1k: $2.50
+      num_examples: 2000
+      expected_cost: $50
+      
+    tier3:
+      model: gpt-5
+      cost_per_1k: $10.00
+      num_examples: 1500
+      expected_cost: $55
+  
+  # Total: 11.5K examples, $170
+
+# ============================================================================
+# TRAINING PIPELINE (Reusable for All Modifiers)
+# ============================================================================
+training_pipeline:
+  steps:
+    1_test_base:
+      script: src/phase3_modifiers/test_domain.py
+      duration: 2 days
+      output: failures_12k.jsonl
+      
+    2_generate_tier1:
+      script: src/phase3_modifiers/generate_tier1.py
+      duration: 3 days
+      output: tier1_filtered.jsonl
+      
+    3_test_tier1:
+      script: src/phase3_modifiers/test_tier1.py
+      duration: 4 hours
+      output: tier1_remaining.jsonl
+      
+    4_generate_tier2:
+      script: src/phase3_modifiers/generate_tier2.py
+      duration: 2 days
+      output: tier2_filtered.jsonl
+      
+    5_test_tier2:
+      script: src/phase3_modifiers/test_tier2.py
+      duration: 2 hours
+      output: tier2_remaining.jsonl
+      
+    6_generate_tier3:
+      script: src/phase3_modifiers/generate_tier3.py
+      duration: 1 day
+      output: tier3_filtered.jsonl
+      
+    7_train_modifier:
+      script: src/phase3_modifiers/train_modifier.py
+      duration: 1 week
+      output: modifier_260mb
+      
+    8_compress_modifier:
+      script: src/phase3_modifiers/compress_modifier.py
+      duration: 3 days
+      output: modifier_40-48mb
+
+# ============================================================================
+# COST OPTIMIZATION ANALYSIS
+# ============================================================================
+cost_comparison:
+  single_teacher:
+    strategy: Use only GPT-5 for all examples
+    cost_per_modifier: ~$320
+    total_for_3_modifiers: $960
+    
+  cascaded_3_tier:
+    strategy: Use cheap models first, escalate only for failures
+    cost_per_modifier: ~$192 (average)
+    total_for_3_modifiers: $577
+    
+  savings:
+    absolute: $383
+    percentage: 40%
+    
+  why_it_works:
+    - Tier 1 models (free/cheap) handle 60-70% of cases
+    - Tier 2 models handle 20-25% of remaining
+    - Only hardest 10-15% need expensive GPT-5
+    - Quality maintained by targeted escalation
+
+# ============================================================================
+# SYSTEM ARCHITECTURE AFTER PHASE 3
+# ============================================================================
+final_system:
+  base:
+    size: 520MB
+    performance: 89-91% GPT-4
+    
+  modifiers:
+    code:
+      size: 47MB
+      performance: 115-130% GPT-4
+      
+    reasoning:
+      size: 48MB
+      performance: 100-108% GPT-4
+      
+    automation:
+      size: 40MB
+      performance: 105-118% GPT-4
+  
+  total:
+    base_plus_modifiers: 655MB (520 + 135)
+    router: 13MB (Phase 4)
+    escalation: 3MB (Phase 4)
+    grand_total: 671MB
+    
+  runtime_memory:
+    base_only: 520MB
+    base_plus_one_modifier: 568MB max
+    hot_swap: true              # Only one modifier loaded at a time

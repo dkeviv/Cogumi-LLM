@@ -1,0 +1,31 @@
+# Phase 0 Dataset Creation - Requirements
+
+# Core dependencies
+python>=3.10,<3.11
+
+# Data processing
+datasets>=2.14.0          # HuggingFace datasets
+jsonlines>=4.0.0          # JSON Lines format
+pandas>=2.0.0             # Data manipulation
+numpy>=1.26.4,<2.0.0      # Array operations (avoid 2.0+ compatibility issues)
+
+# Deduplication
+xxhash>=3.4.1             # Fast hashing (10x faster than MD5)
+datasketch>=1.6.4         # MinHash LSH implementation
+
+# Progress monitoring
+rich>=13.7.0              # Progress bars and console output
+tqdm>=4.66.0              # Alternative progress bars
+
+# API clients (for multi-teacher distillation)
+openai>=1.3.0             # OpenAI API (GPT-4o, GPT-4-mini)
+anthropic>=0.25.0         # Anthropic API (optional)
+together>=1.2.0           # Together.ai API (Llama-405B, optional)
+
+# Quality scoring
+tiktoken>=0.5.0           # Token counting
+
+# Utilities
+python-dotenv>=1.0.0      # Environment variables
+pyyaml>=6.0.1             # YAML configuration
+requests>=2.31.0          # HTTP requests

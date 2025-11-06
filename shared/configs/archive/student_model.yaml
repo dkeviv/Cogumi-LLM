@@ -1,0 +1,276 @@
+# Student Model Configuration
+# Defines the target student model and training parameters
+
+# Base Student Model - Qwen 2.5 7B (English-optimized)
+student_model:
+  name: "Qwen2.5-7B-Instruct"
+  model_id: "Qwen/Qwen2.5-7B-Instruct"
+  base_size_gb: 14.0  # Approximate size of base model
+  
+  # Model architecture
+  architecture:
+    model_type: "qwen2"
+    hidden_size: 4096
+    num_attention_heads: 32
+    num_hidden_layers: 32
+    vocab_size: 151936
+    max_position_embeddings: 32768
+    
+  # Tokenizer settings
+  tokenizer:
+    tokenizer_type: "tiktoken"
+    pad_token: "<|endoftext|>"
+    eos_token: "<|im_end|>"
+    bos_token: "<|im_start|>"
+    chat_template: "qwen"
+    
+  # Language optimization
+  language_config:
+    primary_language: "english"
+    multilingual_support: false  # English-only for optimization
+    remove_non_english_tokens: true
+    
+  # Performance targets
+  targets:
+    final_size_mb: 480          # 480MB compressed target
+    compression_ratio: 30       # 30x compression from base
+    performance_retention: 0.99  # 99% of GPT-4 performance
+    inference_speed_ms: 100     # <100ms response time
+    memory_usage_mb: 2048       # <2GB memory usage
+
+# Training Configuration
+training_config:
+  # QLoRA (4-bit quantization) settings
+  qlora:
+    enabled: true
+    quantization_type: "4bit"
+    bnb_4bit_compute_dtype: "bfloat16"
+    bnb_4bit_use_double_quant: true
+    bnb_4bit_quant_type: "nf4"
+    
+  # LoRA adapter settings
+  lora:
+    r: 64                    # LoRA attention dimension
+    alpha: 16                # LoRA scaling parameter
+    dropout: 0.05            # LoRA dropout
+    bias: "none"             # LoRA bias type
+    task_type: "CAUSAL_LM"   # Task type
+    
+    # Target modules for LoRA
+    target_modules:
+      - "q_proj"
+      - "k_proj" 
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+      
+  # Training hyperparameters
+  hyperparameters:
+    learning_rate: 2e-4
+    batch_size: 4            # Small batch size for memory efficiency
+    gradient_accumulation_steps: 8
+    effective_batch_size: 32  # 4 * 8 = 32
+    max_seq_length: 2048
+    num_epochs: 3
+    warmup_steps: 100
+    weight_decay: 0.01
+    lr_scheduler: "cosine"
+    
+  # Optimization settings
+  optimization:
+    optimizer: "adamw_torch"
+    adam_beta1: 0.9
+    adam_beta2: 0.999
+    adam_epsilon: 1e-8
+    max_grad_norm: 1.0
+    
+  # Memory optimization
+  memory_optimization:
+    gradient_checkpointing: true
+    dataloader_pin_memory: true
+    remove_unused_columns: true
+    fp16: false              # Use bfloat16 instead
+    bf16: true
+    torch_compile: true      # Use PyTorch 2.0 compilation
+    
+  # Data loading
+  data_config:
+    dataloader_num_workers: 4
+    preprocessing_num_workers: 8
+    max_train_samples: null  # Use all available data
+    streaming: true          # Stream large datasets
+    
+# Distillation Strategy
+distillation:
+  # Knowledge distillation settings
+  knowledge_distillation:
+    enabled: true
+    temperature: 4.0         # Temperature for soft targets
+    alpha: 0.7               # Weight for distillation loss
+    
+  # Teacher-student alignment
+  alignment:
+    response_matching: true   # Match teacher response style
+    reasoning_alignment: true # Align reasoning patterns
+    factual_consistency: true # Maintain factual accuracy
+    
+  # Multi-teacher distillation
+  multi_teacher:
+    enabled: true
+    teacher_weights:
+      groq_llama_405b: 0.6   # 60% weight
+      openai_gpt4: 0.3       # 30% weight  
+      openai_gpt5: 0.1       # 10% weight
+      
+# Evaluation Configuration
+evaluation:
+  # Evaluation datasets
+  datasets:
+    - name: "hellaswag"
+      weight: 0.2
+    - name: "arc_challenge" 
+      weight: 0.2
+    - name: "truthfulqa"
+      weight: 0.2
+    - name: "gsm8k"
+      weight: 0.2
+    - name: "humaneval"
+      weight: 0.2
+      
+  # Evaluation metrics
+  metrics:
+    - accuracy
+    - perplexity
+    - bleu_score
+    - rouge_l
+    - exact_match
+    - f1_score
+    
+  # Evaluation schedule
+  schedule:
+    eval_steps: 500          # Evaluate every 500 steps
+    save_steps: 1000         # Save checkpoint every 1000 steps
+    logging_steps: 100       # Log metrics every 100 steps
+    
+  # Performance benchmarks
+  benchmarks:
+    baseline_model: "gpt-3.5-turbo"
+    target_accuracy: 0.95
+    target_latency_ms: 100
+    target_memory_mb: 2048
+
+# Compression Configuration  
+compression:
+  # Post-training compression
+  post_training:
+    enabled: true
+    methods:
+      - "weight_pruning"     # Remove unnecessary weights
+      - "layer_pruning"      # Remove unnecessary layers
+      - "attention_pruning"  # Prune attention heads
+      - "quantization"       # Additional quantization
+      
+  # Weight pruning settings
+  weight_pruning:
+    sparsity_ratio: 0.3      # Remove 30% of weights
+    structured: false        # Unstructured pruning
+    gradual: true           # Gradual pruning during training
+    
+  # Layer pruning settings  
+  layer_pruning:
+    enabled: false          # Disabled for now (risky)
+    layers_to_remove: []
+    
+  # Attention pruning
+  attention_pruning:
+    head_pruning_ratio: 0.2 # Remove 20% of attention heads
+    importance_metric: "gradient"
+    
+  # Additional quantization
+  additional_quantization:
+    enabled: true
+    target_bits: 8          # 8-bit quantization
+    dynamic: true           # Dynamic quantization
+    
+# Hardware Configuration
+hardware:
+  # Training hardware requirements
+  training:
+    gpu_memory_gb: 24       # Minimum GPU memory
+    cpu_cores: 16           # Recommended CPU cores
+    ram_gb: 64              # Recommended RAM
+    storage_gb: 500         # Required storage
+    
+  # Inference hardware targets
+  inference:
+    gpu_memory_gb: 4        # Target inference GPU memory
+    cpu_cores: 4            # Target CPU cores
+    ram_gb: 8               # Target RAM
+    
+  # Distributed training (if available)
+  distributed:
+    enabled: false          # Single GPU for now
+    world_size: 1
+    local_rank: 0
+    
+# Output Configuration
+output:
+  # Model output settings
+  model_output:
+    output_dir: "models/student_qwen_480mb"
+    save_merged_model: true
+    save_adapter_only: false
+    push_to_hub: false
+    hub_model_id: null
+    
+  # Checkpointing
+  checkpointing:
+    save_total_limit: 3     # Keep only 3 checkpoints
+    save_on_each_node: false
+    load_best_model_at_end: true
+    metric_for_best_model: "eval_accuracy"
+    greater_is_better: true
+    
+  # Logging and monitoring
+  logging:
+    logging_dir: "logs/training"
+    report_to: ["tensorboard"]
+    logging_first_step: true
+    logging_nan_inf_filter: true
+    
+# Quality Assurance
+quality_assurance:
+  # Validation during training
+  validation:
+    validation_split: 0.1   # 10% for validation
+    early_stopping_patience: 5
+    early_stopping_threshold: 0.001
+    
+  # Quality gates
+  quality_gates:
+    min_accuracy: 0.85      # Minimum acceptable accuracy
+    max_perplexity: 10.0    # Maximum acceptable perplexity
+    max_size_mb: 500        # Maximum acceptable size
+    
+  # Safety checks
+  safety_checks:
+    gradient_explosion_check: true
+    nan_detection: true
+    memory_usage_monitoring: true
+    
+# Cost Estimation
+cost_estimation:
+  # Training cost estimation (GPU hours)
+  training_cost:
+    gpu_type: "A100-40GB"
+    estimated_hours: 24
+    cost_per_hour: 3.00
+    total_estimated_cost: 72.00
+    
+  # Data generation cost (already factored in teacher_models.yaml)
+  data_generation_cost: 200.00
+  
+  # Total project cost
+  total_estimated_cost: 272.00

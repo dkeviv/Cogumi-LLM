@@ -56,7 +56,8 @@ export OPENAI_API_KEY="your-key"
 export API_PROVIDER="openai"
 export MODEL="gpt-4o-mini"
 
-./src/phase1c_targeted_distillation/run_phase1c_combined_workflow.sh
+cd Phase1C_Targeted_Distillation/scripts
+./run_phase1c_combined_workflow.sh
 ```
 
 **The script will:**
@@ -80,10 +81,12 @@ export MODEL="gpt-4o-mini"
 
 **Cost Estimation First:**
 ```bash
+cd Phase1C_Targeted_Distillation/scripts
+
 # Estimate costs before generating
-python src/phase1c_targeted_distillation/generate_claude_examples.py \
-  --input "./Phase 1B_2_0/data/Phase 1B_2_0/phase1c_hard_failures.jsonl" \
-  --output "data/phase1c/improved_examples.jsonl" \
+python generate_claude_examples.py \
+  --input "../../Phase1B_Failure_Analysis/data/Phase 1B_2_0/phase1c_hard_failures.jsonl" \
+  --output "../data/Phase1C_improved_examples.jsonl" \
   --api_provider openai \
   --model gpt-4o-mini \
   --estimate_only

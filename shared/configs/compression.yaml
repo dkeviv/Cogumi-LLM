@@ -1,0 +1,208 @@
+# Compression Pipeline Configuration (Phase 2)
+# Multi-stage compression: 10GB → 520MB
+
+# ============================================================================
+# PHASE 2A: NEURAL MAGIC STRUCTURED PRUNING
+# ============================================================================
+pruning:
+  library: llm-compressor
+  
+  # Grid Search Configuration
+  grid_search:
+    sparsity_levels: [0.60, 0.65, 0.70]  # Test multiple targets
+    parallel: true                        # Run experiments in parallel
+    
+  # Optimal Configuration (selected after grid search)
+  optimal:
+    target_sparsity: 0.65                 # 65% of weights pruned
+    schedule:
+      steps: [0, 500, 1000, 1500, 2000]
+      sparsity: [0, 0.1625, 0.325, 0.4875, 0.65]  # Gradual increase
+    
+    # Calibration Data
+    calibration:
+      dataset: data/calibration/diverse_10k.jsonl
+      num_samples: 10000
+      max_seq_len: 2048
+    
+    # Post-Pruning Recovery
+    recovery:
+      enabled: true
+      learning_rate: 1.0e-6
+      hours: 8
+      
+  # Expected Output
+  output:
+    size: 3.5GB
+    quality_loss: 2-4%        # From 10GB baseline
+    format: sparse_fp16
+
+# ============================================================================
+# PHASE 2B: AWQ 4-BIT QUANTIZATION
+# ============================================================================
+quantization:
+  library: autoawq
+  
+  config:
+    bits: 4
+    group_size: 128           # Balance quality vs size
+    version: gemm             # Use GEMM for better performance
+    
+    # Calibration Data
+    calibration:
+      dataset: data/calibration/awq_2k.jsonl
+      num_samples: 2048
+      max_seq_len: 2048
+    
+    # Mixed Precision (optional)
+    skip_modules: []          # Quantize all layers
+    
+  # Expected Output
+  output:
+    size: 900MB
+    quality_loss: 2-3%        # From 3.5GB pruned
+    format: awq_4bit
+
+# ============================================================================
+# PHASE 2C: GGUF Q5_K_M EXPORT
+# ============================================================================
+gguf:
+  library: llama-cpp-python
+  
+  config:
+    quantization_type: Q5_K_M  # Mixed 5-bit/6-bit
+    output_format: gguf
+    
+    # Validation
+    validate:
+      num_queries: 100
+      token_agreement_threshold: 0.95  # 95% token match
+    
+  # Expected Output
+  output:
+    size: 600MB
+    quality_loss: 1-2%        # From 900MB AWQ
+    format: gguf
+
+# ============================================================================
+# PHASE 2D: ZSTD LOSSLESS COMPRESSION
+# ============================================================================
+compression:
+  library: zstandard
+  
+  config:
+    # Dictionary Training
+    dictionary:
+      sample_size: 104857600  # 100MB sample
+      dict_size: 131072       # 128KB dictionary
+      
+    # Compression
+    level: 10                 # Max compression (slowest)
+    threads: 8                # Parallel compression
+    
+    # Validation
+    validate:
+      checksum: sha256        # Verify lossless
+    
+  # Expected Output
+  output:
+    size: 500MB
+    quality_loss: 0%          # Lossless
+    format: zst
+
+# ============================================================================
+# PHASE 2E: RECOVERY FINE-TUNING
+# ============================================================================
+recovery:
+  # Hardest Examples Selection
+  selection:
+    method: perplexity
+    dataset: data/phase1/public_500k_filtered.jsonl
+    top_percent: 2            # Select hardest 2% (12K examples)
+    
+  # GPT-5 Enhancement
+  enhancement:
+    teacher: gpt-5
+    prompt_template: "Improve this example: {example}"
+    
+  # LoRA Fine-Tuning
+  training:
+    base_model: models/phase2d_compressed_500mb.bin.zst
+    adapter: lora
+    lora_r: 64
+    lora_alpha: 128
+    learning_rate: 8.0e-7     # Very conservative
+    epochs: 2
+    
+  # Expected Output
+  output:
+    size: 520MB               # 500MB base + 20MB LoRA
+    quality_improvement: 1-2% # Recover some lost quality
+    final_quality: 91-93%     # % of Phase 1C (10GB model)
+
+# ============================================================================
+# PHASE 2F: CONFIDENCE CALIBRATION
+# ============================================================================
+calibration:
+  # Data Collection
+  data:
+    num_queries: 30000
+    collect_logits: true
+    scorer: gpt-4-mini
+    threshold: 7.0            # Quality threshold
+    
+  # Calibration Methods
+  methods:
+    - temperature_scaling     # Simple, effective
+    - platt_scaling          # Logistic regression
+    
+  # Validation
+  validation:
+    test_size: 5000
+    target_ece: 0.05          # Expected Calibration Error <5%
+    target_routing_accuracy: 0.97  # 97% correct routing
+    
+  # Output
+  output:
+    calibrators_dir: models/calibrators/
+    final_ece: <0.05
+    routing_accuracy: 97%
+
+# ============================================================================
+# OVERALL COMPRESSION SUMMARY
+# ============================================================================
+pipeline:
+  input:
+    model: models/phase1c_enhanced_10gb
+    size: 10GB
+    quality: 100%             # Baseline (88-100% GPT-4)
+    
+  output:
+    model: models/phase2e_recovered_520mb
+    size: 520MB
+    quality: 91-93%           # 89-91% GPT-4 (vs 88-100% pre-compression)
+    compression_ratio: 19.2x  # 10GB / 520MB
+    
+  stages:
+    - name: Pruning
+      size_reduction: 10GB → 3.5GB
+      quality_loss: 2-4%
+      
+    - name: Quantization
+      size_reduction: 3.5GB → 900MB
+      quality_loss: 2-3%
+      
+    - name: GGUF
+      size_reduction: 900MB → 600MB
+      quality_loss: 1-2%
+      
+    - name: Zstd
+      size_reduction: 600MB → 500MB
+      quality_loss: 0%
+      
+    - name: Recovery
+      size_change: 500MB → 520MB
+      quality_improvement: +1-2%
+
+# Total Duration: 6 weeks
+# Total Cost: $402

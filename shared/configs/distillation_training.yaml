@@ -1,0 +1,97 @@
+# Distillation Training Configuration (Phase 1C)
+# For GPT-5 targeted enhancement on failure patterns
+
+base_model: models/phase1a_merged_10gb  # Already QLoRA-trained base
+model_type: LlamaForCausalLM
+tokenizer_type: AutoTokenizer
+tokenizer_config: models/tokenizers/trimmed_vocab
+
+# Quantization & Adapter Configuration
+load_in_4bit: true
+adapter: lora
+lora_r: 64
+lora_alpha: 128
+lora_dropout: 0.05
+lora_target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+# Sequence & Packing
+sequence_len: 2048
+sample_packing: true
+
+# Dataset Configuration - Mixed Training
+datasets:
+  # 90% targeted data (TEMP: using reference-based bootstrap + improved datasets for smoke tests)
+  # Original planned path:
+  # - path: data/phase1c/gpt5_filtered_40k.jsonl
+  - path: data/phase1c/targeted_failures_from_refs.jsonl
+    type: completion
+    weight: 0.8
+
+  # New: Improved forward dataset from self-critique (pass=True only)
+  - path: Phase 1B_2_0/data/self_critique/eval/improved_forward.jsonl
+    type: completion
+    weight: 0.08
+
+  # New: Reverse dataset from self-critique (helps instruction generation)
+  - path: Phase 1B_2_0/data/self_critique/eval/improved_reverse.jsonl
+    type: completion
+    weight: 0.02
+
+  # 10% original data to prevent catastrophic forgetting (keep as-is)
+  - path: data/phase1/public_500k_filtered.jsonl
+    type: completion
+    weight: 0.1
+
+# Training Hyperparameters
+optimizer: adamw_torch
+lr_scheduler: cosine
+learning_rate: 3.0e-6         # Lower than base training (avoid forgetting)
+warmup_steps: 300
+num_epochs: 5                 # More epochs for smaller targeted dataset
+gradient_accumulation_steps: 8
+micro_batch_size: 4
+gradient_checkpointing: true
+
+# Early Stopping
+early_stopping_patience: 6
+
+# Evaluation & Checkpointing
+evaluation_strategy: steps
+eval_steps: 500
+save_steps: 1000
+save_total_limit: 5
+
+# Precision
+bf16: true
+tf32: true
+
+# Output
+output_dir: data/checkpoints/phase1c_distilled
+logging_steps: 100
+save_strategy: steps
+
+# WandB Integration
+wandb_project: cogumi-llm
+wandb_run_name: phase1c-gpt5-distillation
+wandb_log_model: false
+
+# Hardware Optimization
+group_by_length: true
+max_grad_norm: 1.0
+dataloader_num_workers: 4
+
+# Expected Training Stats
+# Targeted examples: 40K (GPT-5) + 60K (original) = 100K total
+# Steps per epoch: ~1,560
+# Total steps: ~7,800 (5 epochs, may early stop around 6K-7K)
+# Training time: ~5 days on A100 40GB
+# GPU hours: ~80 hrs @ $1.89/hr
+# Total cost: ~$150
+# Expected improvement: 75-82% GPT-4 → 88-100% GPT-4

@@ -1,0 +1,104 @@
+# Phase 1A: LLAMA-3.2-8B QLoRA Training Configuration
+# Dataset: 640,637 English examples | Duration: 36-48 hours | GPU: A100 40GB
+
+# ============================================================================
+# BASE MODEL CONFIGURATION
+# ============================================================================
+base_model: meta-llama/Llama-3.2-8B
+model_type: LlamaForCausalLM
+tokenizer_type: AutoTokenizer
+trust_remote_code: false
+
+# ============================================================================
+# QLORA CONFIGURATION (4-bit + LoRA)
+# ============================================================================
+load_in_4bit: true
+bnb_4bit_quant_type: nf4
+bnb_4bit_use_double_quant: true
+bnb_4bit_compute_dtype: bfloat16
+
+adapter: lora
+lora_r: 64
+lora_alpha: 16
+lora_dropout: 0.05
+lora_target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+# ============================================================================
+# DATASET CONFIGURATION
+# ============================================================================
+datasets:
+  - path: data/phase1/public_500k_filtered.jsonl
+    type: completion
+    field: response
+
+sequence_len: 2048
+sample_packing: true
+pad_to_sequence_len: true
+max_packed_sequence_len: 2048
+
+# ============================================================================
+# TRAINING HYPERPARAMETERS
+# ============================================================================
+num_epochs: 3
+micro_batch_size: 4
+gradient_accumulation_steps: 8
+gradient_checkpointing: true
+
+# ============================================================================
+# OPTIMIZER CONFIGURATION
+# ============================================================================
+optimizer: adamw_torch
+learning_rate: 0.000005
+lr_scheduler: cosine
+warmup_steps: 500
+weight_decay: 0.01
+adam_beta1: 0.9
+adam_beta2: 0.999
+adam_epsilon: 1e-8
+max_grad_norm: 1.0
+
+# ============================================================================
+# PRECISION & HARDWARE
+# ============================================================================
+bf16: true
+tf32: true
+flash_attention: true
+
+# ============================================================================
+# LOGGING & CHECKPOINTING
+# ============================================================================
+logging_steps: 10
+eval_steps: 500
+save_steps: 1000
+save_total_limit: 5
+output_dir: ./data/checkpoints/llama-3.2-8b-phase1a
+
+# ============================================================================
+# EARLY STOPPING
+# ============================================================================
+early_stopping_patience: 6
+load_best_model_at_end: true
+metric_for_best_model: loss
+greater_is_better: false
+
+# ============================================================================
+# EVALUATION
+# ============================================================================
+evaluation_strategy: steps
+per_device_eval_batch_size: 4
+eval_accumulation_steps: 4
+
+# ============================================================================
+# ADDITIONAL OPTIMIZATIONS
+# ============================================================================
+group_by_length: true
+ddp_find_unused_parameters: false
+dataloader_num_workers: 4
+dataloader_pin_memory: true

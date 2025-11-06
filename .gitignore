@@ -119,3 +119,27 @@ Phase 1B_2_0/data/*.jsonl
 Phase1A_2_0/models/
 Phase1A_2_0/data/checkpoints/
 Phase 1B_2_0/data/
+
+# NEW PHASE STRUCTURE - Exclude all data and models (CRITICAL)
+Phase*/data/*.jsonl
+Phase*/data/*.json
+Phase*/data/*.gz
+Phase*/data/*.tar
+Phase*/data/*.tar.gz
+Phase*/data/checkpoints/
+Phase*/models/*.bin
+Phase*/models/*.safetensors
+Phase*/models/*.gguf
+Phase*/models/*.pth
+Phase*/models/*.pt
+Phase*/models/*/
+
+# Keep only small test files and READMEs
+!Phase*/data/*.md
+!Phase*/data/README.md
+!Phase*/models/README.md
+!Phase*/data/test/*.jsonl
+
+# Shared folder - exclude large files
+shared/data/
+shared/models/

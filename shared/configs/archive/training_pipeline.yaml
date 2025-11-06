@@ -1,0 +1,409 @@
+# Training Pipeline Configuration
+# Defines the complete training pipeline phases and execution parameters
+
+# Pipeline Overview
+pipeline:
+  name: "Cogumi-LLM Distillation Pipeline"
+  version: "1.0.0"
+  description: "Cascaded teacher-student distillation for 480MB compressed LLM"
+  
+  # Execution order
+  phases:
+    - phase0_chat        # Interactive chat interface
+    - phase1_distillation # Data generation and initial distillation  
+    - phase2_compression  # Model compression and optimization
+    - phase3a_general    # General performance modifiers
+    - phase3b_coding     # Coding-specific modifiers
+    - phase4_runtime     # Runtime optimization and deployment
+    
+  # Global pipeline settings
+  settings:
+    max_total_runtime_hours: 48
+    checkpoint_every_phase: true
+    validate_between_phases: true
+    cost_tracking_enabled: true
+    performance_monitoring: true
+
+# Phase 0: Interactive Chat Interface
+phase0_chat:
+  enabled: true
+  description: "Interactive chat interface for testing teacher models"
+  
+  dependencies: []
+  
+  configuration:
+    # Available teacher models
+    available_models:
+      - groq_llama_405b
+      - openai_gpt4
+      - openai_gpt5
+      - together_qwen_coder
+      
+    # Session management
+    session_management:
+      persist_sessions: true
+      session_timeout_minutes: 60
+      max_sessions: 100
+      
+    # Cost tracking
+    cost_tracking:
+      track_per_session: true
+      budget_warnings: true
+      cost_display_enabled: true
+      
+  outputs:
+    - session_logs
+    - cost_reports
+    - model_performance_data
+
+# Phase 1: Data Distillation  
+phase1_distillation:
+  enabled: true
+  description: "Generate training data using cascaded teacher models"
+  
+  dependencies: ["phase0_chat"]
+  
+  configuration:
+    # Data generation settings
+    data_generation:
+      total_samples: 100000        # Target 100K samples
+      batch_size: 1000            # Process in 1K batches
+      parallel_workers: 4         # Parallel generation workers
+      
+    # Teacher model allocation
+    teacher_allocation:
+      groq_llama_405b: 89000      # 89% of samples
+      openai_gpt4: 8000           # 8% of samples  
+      openai_gpt5: 3000           # 3% of samples
+      
+    # Quality filtering
+    quality_filtering:
+      enabled: true
+      min_quality_score: 0.7
+      deduplication_enabled: true
+      similarity_threshold: 0.8
+      
+    # Prompt engineering
+    prompt_engineering:
+      prompt_templates_file: "prompts/distillation_prompts.yaml"
+      dynamic_prompting: true
+      difficulty_gradation: true
+      
+  inputs:
+    - prompt_templates
+    - seed_datasets
+    
+  outputs:
+    - training_data_phase1
+    - quality_metrics
+    - cost_breakdown
+    
+  validation:
+    data_quality_check: true
+    target_size_validation: true
+    cost_budget_check: true
+    
+  estimated_cost_usd: 50.0
+  estimated_runtime_hours: 8.0
+
+# Phase 2: Model Compression
+phase2_compression:
+  enabled: true
+  description: "Train compressed student model using QLoRA"
+  
+  dependencies: ["phase1_distillation"]
+  
+  configuration:
+    # Training data
+    training_data:
+      source: "training_data_phase1"
+      train_split: 0.9
+      validation_split: 0.1
+      max_samples: 100000
+      
+    # QLoRA training
+    qlora_training:
+      base_model: "Qwen/Qwen2.5-7B-Instruct"
+      quantization_config: "configs/student_model.yaml#qlora"
+      lora_config: "configs/student_model.yaml#lora"
+      
+    # Training schedule
+    training_schedule:
+      num_epochs: 3
+      learning_rate: 2e-4
+      batch_size: 4
+      gradient_accumulation_steps: 8
+      
+    # Compression targets
+    compression_targets:
+      target_size_mb: 480
+      performance_retention_min: 0.95
+      inference_speed_target_ms: 100
+      
+  inputs:
+    - training_data_phase1
+    - base_model_weights
+    
+  outputs:
+    - compressed_model_v1
+    - training_logs
+    - performance_metrics
+    
+  validation:
+    size_validation: true
+    performance_validation: true
+    quality_benchmarks: true
+    
+  estimated_cost_usd: 72.0
+  estimated_runtime_hours: 24.0
+
+# Phase 3A: General Performance Modifiers
+phase3a_general:
+  enabled: true  
+  description: "Improve general performance with advanced teacher cascading"
+  
+  dependencies: ["phase2_compression"]
+  
+  configuration:
+    # Advanced cascading strategy
+    cascading_strategy:
+      primary: "groq_llama_405b"      # Foundation layer
+      secondary: "openai_gpt4"        # Critical improvements
+      elite: "openai_gpt5"            # Elite performance
+      
+    # Data generation for modifiers
+    modifier_data_generation:
+      total_samples: 20000            # Smaller, high-quality dataset
+      focus_areas:
+        - complex_reasoning
+        - factual_accuracy
+        - coherence_improvement
+        - response_quality
+        
+    # Fine-tuning settings
+    fine_tuning:
+      learning_rate: 1e-5             # Lower learning rate
+      num_epochs: 2
+      batch_size: 2
+      gradient_accumulation_steps: 16
+      
+  inputs:
+    - compressed_model_v1
+    - general_improvement_prompts
+    
+  outputs:
+    - compressed_model_v2
+    - general_performance_metrics
+    
+  validation:
+    benchmark_improvement: true
+    regression_testing: true
+    
+  estimated_cost_usd: 75.0
+  estimated_runtime_hours: 12.0
+
+# Phase 3B: Coding Performance Modifiers  
+phase3b_coding:
+  enabled: true
+  description: "Enhance coding capabilities with specialized teacher models"
+  
+  dependencies: ["phase3a_general"]
+  
+  configuration:
+    # Coding-specific cascading
+    coding_cascading:
+      primary: "together_qwen_coder"  # Coding foundation
+      elite: "openai_gpt5"            # Advanced coding patterns
+      
+    # Coding data generation
+    coding_data_generation:
+      total_samples: 15000
+      programming_languages:
+        - python: 6000
+        - javascript: 3000
+        - typescript: 2000
+        - java: 2000
+        - cpp: 1000
+        - rust: 500
+        - go: 500
+        
+    # Coding-specific training
+    coding_training:
+      learning_rate: 5e-6             # Very low learning rate
+      num_epochs: 1                   # Single epoch to avoid overfitting
+      batch_size: 1
+      gradient_accumulation_steps: 32
+      
+  inputs:
+    - compressed_model_v2
+    - coding_improvement_prompts
+    
+  outputs:
+    - compressed_model_v3
+    - coding_performance_metrics
+    
+  validation:
+    humaneval_benchmark: true
+    code_quality_assessment: true
+    
+  estimated_cost_usd: 50.0
+  estimated_runtime_hours: 8.0
+
+# Phase 4: Runtime Optimization
+phase4_runtime:
+  enabled: true
+  description: "Optimize model for production deployment"
+  
+  dependencies: ["phase3b_coding"]
+  
+  configuration:
+    # Runtime optimizations
+    runtime_optimizations:
+      torch_script_compilation: true
+      onnx_conversion: true
+      tensorrt_optimization: true
+      dynamic_batching: true
+      
+    # Inference optimization
+    inference_optimization:
+      kv_cache_optimization: true
+      attention_optimization: true
+      memory_mapping: true
+      
+    # Deployment preparation
+    deployment_preparation:
+      containerization: true
+      api_wrapper: true
+      scaling_configuration: true
+      monitoring_setup: true
+      
+  inputs:
+    - compressed_model_v3
+    
+  outputs:
+    - production_ready_model
+    - deployment_artifacts
+    - performance_benchmarks
+    
+  validation:
+    latency_testing: true
+    throughput_testing: true
+    memory_usage_validation: true
+    
+  estimated_cost_usd: 0.0
+  estimated_runtime_hours: 4.0
+
+# Data Management
+data_management:
+  # Storage locations
+  storage:
+    base_path: "data/"
+    raw_data: "data/raw/"
+    processed_data: "data/processed/"
+    training_data: "data/training/"
+    validation_data: "data/validation/"
+    models: "models/"
+    logs: "logs/"
+    checkpoints: "checkpoints/"
+    
+  # Data versioning
+  versioning:
+    enabled: true
+    version_format: "v{major}.{minor}.{patch}"
+    auto_increment: true
+    
+  # Data cleanup
+  cleanup:
+    auto_cleanup_enabled: true
+    keep_versions: 3
+    cleanup_after_days: 30
+
+# Monitoring and Alerting
+monitoring:
+  # Performance monitoring
+  performance:
+    enabled: true
+    metrics:
+      - gpu_utilization
+      - memory_usage
+      - training_loss
+      - validation_accuracy
+      - inference_latency
+      
+  # Cost monitoring
+  cost:
+    enabled: true
+    budget_alerts: [0.5, 0.75, 0.9]  # Alert at 50%, 75%, 90%
+    cost_breakdown_logging: true
+    
+  # Quality monitoring
+  quality:
+    enabled: true
+    quality_gates: true
+    regression_detection: true
+    
+# Error Handling and Recovery
+error_handling:
+  # Retry policies
+  retry_policies:
+    api_calls:
+      max_retries: 3
+      backoff_multiplier: 2
+      max_backoff_seconds: 60
+      
+    training:
+      checkpoint_recovery: true
+      auto_restart: true
+      max_restarts: 3
+      
+  # Fallback strategies
+  fallbacks:
+    model_serving:
+      fallback_to_larger_model: false
+      graceful_degradation: true
+      
+    data_generation:
+      fallback_teachers: ["groq_llama_405b"]
+      
+# Security and Compliance
+security:
+  # API key management
+  api_keys:
+    encryption_enabled: true
+    key_rotation_days: 90
+    
+  # Data privacy
+  data_privacy:
+    anonymization_enabled: true
+    pii_detection: true
+    data_retention_days: 365
+    
+# Reporting and Analytics
+reporting:
+  # Automated reports
+  automated_reports:
+    daily_cost_report: true
+    weekly_progress_report: true
+    phase_completion_report: true
+    
+  # Analytics
+  analytics:
+    performance_tracking: true
+    cost_optimization_insights: true
+    quality_trend_analysis: true
+    
+# Final Validation
+final_validation:
+  # Comprehensive testing
+  comprehensive_testing:
+    benchmark_suite: true
+    regression_testing: true
+    performance_validation: true
+    cost_verification: true
+    
+  # Acceptance criteria
+  acceptance_criteria:
+    max_size_mb: 480
+    min_performance_retention: 0.95
+    max_total_cost_usd: 250.0
+    max_inference_latency_ms: 100

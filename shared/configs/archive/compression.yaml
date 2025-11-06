@@ -1,0 +1,303 @@
+# Compression Configuration
+# Defines model compression and optimization parameters for 480MB target
+
+# Compression Strategy Overview
+compression_strategy:
+  name: "Aggressive Multi-Stage Compression"
+  description: "30x compression from 14GB to 480MB while maintaining 99% performance"
+  
+  # Compression stages
+  stages:
+    - stage1_quantization    # Initial 4-bit quantization
+    - stage2_pruning        # Weight and structure pruning  
+    - stage3_distillation   # Knowledge preservation
+    - stage4_optimization   # Final optimization
+    
+  # Target metrics
+  targets:
+    final_size_mb: 480
+    compression_ratio: 30
+    performance_retention: 0.99
+    inference_speed_ms: 100
+    memory_usage_mb: 2048
+
+# Stage 1: Initial Quantization
+stage1_quantization:
+  description: "4-bit quantization with QLoRA"
+  
+  # Quantization settings
+  quantization:
+    type: "4bit"
+    compute_dtype: "bfloat16"
+    quant_type: "nf4"                # NormalFloat 4-bit
+    use_double_quant: true           # Double quantization for better accuracy
+    
+  # LoRA configuration for training
+  lora:
+    r: 64                           # Rank
+    alpha: 16                       # Scaling factor
+    dropout: 0.05
+    target_modules:
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+      
+  # Expected compression
+  expected_compression:
+    size_reduction_percent: 75      # 75% reduction from 4-bit quantization
+    expected_size_gb: 3.5           # Down to ~3.5GB
+    performance_impact: 0.02        # 2% performance loss expected
+
+# Stage 2: Pruning and Structure Optimization
+stage2_pruning:
+  description: "Weight pruning and structural optimization"
+  
+  # Weight pruning
+  weight_pruning:
+    enabled: true
+    sparsity_ratio: 0.4             # Remove 40% of weights
+    structured: false               # Unstructured pruning
+    importance_metric: "magnitude"  # Use weight magnitude
+    gradual_pruning: true
+    
+  # Attention head pruning
+  attention_pruning:
+    enabled: true
+    head_pruning_ratio: 0.3         # Remove 30% of attention heads
+    importance_metric: "gradient"
+    layer_wise_pruning: true
+    
+  # Layer pruning (careful)
+  layer_pruning:
+    enabled: false                  # Disabled - too risky
+    layers_to_remove: []
+    
+  # Vocabulary pruning
+  vocabulary_pruning:
+    enabled: true
+    keep_top_tokens: 100000         # Keep most frequent 100K tokens
+    language_specific: true         # English-only optimization
+    remove_unused_tokens: true
+    
+  # Expected compression
+  expected_compression:
+    size_reduction_percent: 50      # Additional 50% reduction
+    expected_size_gb: 1.75          # Down to ~1.75GB
+    performance_impact: 0.03        # 3% additional performance loss
+
+# Stage 3: Knowledge Distillation Optimization
+stage3_distillation:
+  description: "Optimize knowledge transfer and representation"
+  
+  # Distillation parameters
+  distillation:
+    temperature: 4.0                # Soft target temperature
+    alpha: 0.7                      # Distillation loss weight
+    beta: 0.3                       # Hard target loss weight
+    
+  # Knowledge preservation
+  knowledge_preservation:
+    feature_matching: true          # Match intermediate features
+    attention_transfer: true        # Transfer attention patterns
+    embedding_alignment: true       # Align embeddings
+    
+  # Representation optimization
+  representation_optimization:
+    dimension_reduction: true
+    target_hidden_size: 2048        # Reduce from 4096 to 2048
+    preserve_critical_dimensions: true
+    
+  # Expected compression
+  expected_compression:
+    size_reduction_percent: 60      # Additional 60% reduction
+    expected_size_gb: 0.7           # Down to ~700MB
+    performance_impact: 0.01        # 1% performance loss (knowledge preserved)
+
+# Stage 4: Final Optimization
+stage4_optimization:
+  description: "Final optimizations to reach 480MB target"
+  
+  # Advanced quantization
+  advanced_quantization:
+    mixed_precision: true
+    layer_wise_quantization: true
+    calibration_dataset_size: 1000
+    
+    # Per-layer quantization bits
+    layer_quantization:
+      embedding_layers: 8           # 8-bit for embeddings
+      attention_layers: 4           # 4-bit for attention
+      ffn_layers: 4                # 4-bit for feed-forward
+      output_layer: 8              # 8-bit for output
+      
+  # Memory optimization
+  memory_optimization:
+    weight_sharing: true            # Share weights where possible
+    parameter_tying: true           # Tie related parameters
+    factorization: true             # Matrix factorization
+    
+  # Model architecture optimization
+  architecture_optimization:
+    group_query_attention: true     # Reduce KV cache size
+    rope_scaling: true              # Optimize positional embeddings
+    layer_norm_optimization: true   # Optimize normalization layers
+    
+  # Final size optimization
+  final_optimization:
+    huffman_encoding: true          # Compress weights with Huffman coding
+    zero_point_quantization: true   # Optimize zero points
+    block_wise_quantization: true   # Block-wise compression
+    
+  # Expected compression
+  expected_compression:
+    size_reduction_percent: 30      # Final 30% reduction
+    expected_size_mb: 490           # Target ~490MB (with 10MB buffer)
+    performance_impact: 0.01        # 1% additional performance loss
+
+# Compression Validation
+validation:
+  # Size validation
+  size_validation:
+    max_size_mb: 480
+    size_measurement_method: "disk_size"
+    include_metadata: true
+    
+  # Performance validation
+  performance_validation:
+    baseline_model: "gpt-3.5-turbo"
+    benchmark_datasets:
+      - hellaswag
+      - arc_challenge
+      - truthfulqa
+      - gsm8k
+      - humaneval
+      
+    performance_metrics:
+      - accuracy
+      - perplexity
+      - bleu_score
+      - exact_match
+      - inference_latency
+      
+    minimum_thresholds:
+      accuracy: 0.95
+      perplexity: 5.0
+      inference_latency_ms: 100
+      
+  # Quality validation
+  quality_validation:
+    response_coherence: 0.90
+    factual_accuracy: 0.95
+    instruction_following: 0.95
+    safety_alignment: 0.98
+
+# Hardware Requirements
+hardware_requirements:
+  # Training hardware (for compression)
+  training:
+    gpu_memory_gb: 24               # A100 or RTX 4090
+    system_memory_gb: 64
+    storage_gb: 200
+    estimated_training_hours: 12
+    
+  # Target inference hardware
+  inference:
+    gpu_memory_gb: 4                # RTX 3070 level
+    system_memory_gb: 8
+    cpu_cores: 4
+    estimated_tokens_per_second: 50
+
+# Monitoring and Metrics
+monitoring:
+  # Compression progress tracking
+  compression_tracking:
+    track_size_per_stage: true
+    track_performance_per_stage: true
+    early_stopping_enabled: true
+    
+  # Quality monitoring
+  quality_monitoring:
+    real_time_validation: true
+    regression_detection: true
+    performance_degradation_alerts: true
+    
+  # Resource monitoring
+  resource_monitoring:
+    gpu_utilization: true
+    memory_usage: true
+    disk_usage: true
+
+# Error Handling
+error_handling:
+  # Compression failures
+  compression_failures:
+    rollback_enabled: true
+    checkpoint_frequency: "per_stage"
+    max_retries: 3
+    
+  # Quality degradation
+  quality_degradation:
+    auto_adjustment: true
+    less_aggressive_settings: true
+    preserve_critical_capabilities: true
+
+# Output Configuration
+output:
+  # Compressed model output
+  model_output:
+    save_path: "models/compressed/"
+    model_format: "safetensors"
+    include_tokenizer: true
+    include_config: true
+    
+  # Compression artifacts
+  artifacts:
+    compression_report: true
+    before_after_comparison: true
+    performance_benchmarks: true
+    size_breakdown: true
+    
+  # Deployment ready package
+  deployment_package:
+    include_inference_code: true
+    include_api_wrapper: true
+    include_docker_config: true
+    include_kubernetes_config: true
+
+# Advanced Techniques
+advanced_techniques:
+  # Neural architecture search
+  nas:
+    enabled: false                  # Disabled for now (too experimental)
+    search_space: "width_depth"
+    
+  # Dynamic compression
+  dynamic_compression:
+    enabled: false                  # Future feature
+    runtime_adaptation: false
+    
+  # Federated compression
+  federated_compression:
+    enabled: false                  # Not applicable
+    
+# Cost Estimation
+cost_estimation:
+  # Compression training cost
+  compression_training:
+    gpu_hours: 12
+    gpu_type: "A100-40GB"
+    cost_per_hour: 3.00
+    total_cost: 36.00
+    
+  # Validation cost
+  validation_cost:
+    benchmark_evaluation: 10.00
+    human_evaluation: 50.00
+    total_validation_cost: 60.00
+    
+  # Total compression cost
+  total_cost: 96.00
