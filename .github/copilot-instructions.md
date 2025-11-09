@@ -3,6 +3,7 @@ applyTo: '**'
 ---
 Provide project context and coding guidelines that AI should follow when generating code, answering questions, or reviewing changes.
 
+
 # GitHub Copilot Context - Cogumi-LLM Pipeline
 
 ## 🎯 SIMPLIFIED PIPELINE FLOW - ALWAYS FOLLOW THIS SEQUENCE
@@ -576,7 +577,55 @@ when making changes to requirements.txt, ensure compatibility with dependencies 
 
 ### After every todo task completion, ALWAYS check the Problems panel and fix all errors before marking the task as complete or moving to the next task. Use get_errors tool to check for compile errors, type errors, and linting issues. Fix all problems to maintain code quality.
 
-### After every todo task completion, ALWAYS update docs/IMPLEMENTATION_CHECKLIST.md to reflect completed work. Mark tasks as complete (❌ → ✅), update status sections, and add implementation details. This keeps the checklist synchronized with actual progress.
+### After every todo task completion, ALWAYS update .github/IMPLEMENTATION_CHECKLIST.md to reflect completed work. Mark tasks as complete (❌ → ✅), update status sections, and add implementation details. This keeps the checklist synchronized with actual progress.
+
+### CRITICAL: Maintain .github/IMPLEMENTATION_CHECKLIST.md as Master Project Plan (MANDATORY)
+
+**Purpose:** IMPLEMENTATION_CHECKLIST.md is the authoritative, detailed project plan that captures:
+- Current state of all phases
+- Completed vs pending tasks
+- Status markers (✅/⏳/❌)
+- Cost estimates and timelines
+- Technical approach and decisions
+
+**When to Update:**
+
+- After completing ANY task (mark ✅)
+- When pivoting strategies (update approach, remove obsolete steps)
+- When discovering new requirements (add tasks)
+- When updating cost/timeline estimates
+- When changing technical decisions
+
+**What to Update:**
+
+- **Status markers:** Change ⏳ PENDING → ✅ COMPLETE (or ❌ → ✅)
+- **Task details:** Add completion dates, actual costs, outputs
+- **Approach sections:** Update methodology when pivots occur
+- **Cost/timeline:** Update estimates with actuals
+- **Dependencies:** Ensure prerequisite tasks marked correctly
+
+**Critical Principle:** "This file is supposed to capture where we are and what was planned. If we pivot this has to be updated. This is like a project plan document that is detailed." - User emphasis, November 8, 2025
+
+**Examples of Updates:**
+
+- Task completion: "1C.3 Critique Batch Generation" ⏳ → ✅ COMPLETE
+- Strategic pivot: Remove "bidirectional pairs" approach, update to "direct training"
+- Cost update: "$40-45" → "$15-20" (after removing API generation)
+- Approach change: Document rationale in section (e.g., "PIVOTED: No Bidirectional Pairs")
+
+**Red Flags (DON'T):**
+
+- ❌ Skip updates when completing tasks
+- ❌ Leave obsolete approaches documented
+- ❌ Update other docs but forget IMPLEMENTATION_CHECKLIST.md
+- ❌ Mark complete without verifying all subtasks
+
+**Quality Check:**
+
+- Does status match reality? (✅ only if truly complete)
+- Are costs/timelines current?
+- Is technical approach accurate (no obsolete methods)?
+- Are dependencies correctly marked?
 
 ### Maintain features.md to keep track of features implemented and pending features to be implemented. Keep it updated.
 
@@ -666,6 +715,7 @@ when making changes to requirements.txt, ensure compatibility with dependencies 
 4. **docs/technical_specification.md** - Complete technical methodology and architecture
 5. **README.md** - Project overview, quick start, benchmarks
 6. **configs/*.yaml** - Training and compression configurations for each phase
+7. ***Don't keep creating new markdowns without asking. It is critical to keep limited documents or tracking is harder and confusing***
 
 ### Documentation Guidelines (STRICT)
 
