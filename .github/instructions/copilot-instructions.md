@@ -632,6 +632,47 @@ when making changes to requirements.txt, ensure compatibility with dependencies 
 
 ### Maintain technical_specification.md to document implementation details for all completed tasks. Update this file every time a todo list task is completed, capturing technical decisions, code structure, libraries used, and validation steps.
 
+**CRITICAL:** After ANY update to technical_specification.md, read the ENTIRE file to verify accuracy. technical_specification.md is supposed to capture what was actually implemented and HOW it was implemented. Keep it accurate and up-to-date.
+
+### Maintain .github/FILE_REGISTRY.md for ALL code files and documentation (MANDATORY)
+
+**Purpose:** Comprehensive inventory of all files organized by phase with purpose, methods, and outcomes.
+
+**When to Update:**
+
+- After creating new scripts or code files
+- After deprecating/archiving old files
+- After major refactoring or file moves
+- After completing phases (update status markers)
+- After strategic pivots or approach changes
+
+**What to Update:**
+
+- Add new files to appropriate phase section
+- Update file purposes and methods used
+- Move deprecated files to archive sections with notes
+- Update status markers (✅/⏳/❌)
+- Update file locations if moved/renamed
+
+**Update Pattern:**
+
+```bash
+# 1. Read FILE_REGISTRY.md to understand current structure
+# 2. Add/update entries in appropriate phase section
+# 3. Include: file path, purpose, methods/algorithms, achieves
+# 4. Update status markers and timestamps
+# 5. Commit with descriptive message
+```
+
+**Why This Matters:**
+
+- Single source of truth for all project files
+- Easy navigation to find specific functionality
+- Documents methods and algorithms used
+- Tracks deprecated vs active files
+- Helps onboard new developers
+- Shows project structure evolution
+
 ### Maintain docs/ISSUES_LOG.md for ALL bugs and issues (MANDATORY)
 
 **When to Add Entry:**

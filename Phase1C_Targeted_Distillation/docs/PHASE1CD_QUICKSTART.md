@@ -21,16 +21,17 @@ Direct training on curated failure cases with authentic LLM critiques.
 
 ### 1. Data Files (✅ Already Complete)
 ```bash
-# Verify files exist
-ls -lh Phase1B_Failure_Analysis/data/phase1c_hard_failures.jsonl
-# Expected: 4,942 hard failure cases
-# Note: Many failures due to JSON parsing errors, not knowledge gaps
+# Combined dataset ready for training
+ls -lh Phase1C_Targeted_Distillation/data/phase1c_combined_direct.jsonl
+# Expected: 7,426 total cases (2,484 self-critique + 4,942 hard failures)
 
+# Source files (already combined above)
 ls -lh Phase1B_Failure_Analysis/data/phase1c_self_critique_train.jsonl
-# Expected: 2,484 self-corrected cases with authentic Claude Sonnet 4.5 critiques
+# 2,484 self-corrected cases with authentic Claude Sonnet 4.5 critiques
 # Each example includes: instruction, bad output, corrected output, detailed critique
 
-# Total: 7,426 training examples ready
+ls -lh Phase1B_Failure_Analysis/data/phase1c_hard_failures.jsonl
+# 4,942 hard failure cases (many from JSON parsing errors, not knowledge gaps)
 ```
 
 ### 2. Base Model
@@ -48,55 +49,15 @@ pip install transformers datasets peft bitsandbytes accelerate torch
 
 ## 🚀 Quick Start: Direct Training
 
-### **One-Command Execution (Easiest)**
-
-```bash
-# Using OpenAI GPT-4o-mini (recommended: cheaper)
-export OPENAI_API_KEY="your-key"
-export API_PROVIDER="openai"
-**Resume Support:**
-- Training checkpoints allow resuming if interrupted
-- Just re-run the training command
-
----
-
-## 📝 Step-by-Step Direct Training
-
-### **Step 1: Verify Data Files**
-
-```bash
-cd Phase1B_Failure_Analysis/data
-
-# Check self-critique data with authentic critiques (2,484 examples)
-wc -l phase1c_self_critique_train.jsonl
-# Expected: 2484
-
-# Check hard failures (4,942 examples)
-wc -l phase1c_hard_failures.jsonl
-# Expected: 4942
-
-# Preview self-critique format
-head -1 phase1c_self_critique_train.jsonl | jq .
-# Shows: instruction, input (bad output), output (corrected), meta (critique)
-
-# Preview hard failures format
-head -1 phase1c_hard_failures.jsonl | jq .
-# Shows: instruction, reference_answer, category
-```
-
-**Total Training Data: 7,426 examples ready**
-
----
-
-### **Step 2: Direct Training with Early Stopping**
+### **One-Command Execution (Recommended)**
 
 ```bash
 cd Phase1C_Targeted_Distillation
 
-python scripts/train_phase1c_direct.py \
-  --model_name Phase1A_2_0/models/phase1a_merged_10gb \
-  --self_critique_data ../Phase1B_Failure_Analysis/data/phase1c_self_critique_train.jsonl \
-  --hard_failures_data ../Phase1B_Failure_Analysis/data/phase1c_hard_failures.jsonl \
+# Direct training on 7,426 combined examples
+python scripts/train_phase1c_combined_smart.py \
+  --model_name ../Phase1A_Base_Training/models/phase1a_merged_10gb \
+  --dataset data/phase1c_combined_direct.jsonl \
   --output_dir data/checkpoints/phase1c_direct \
   --logging_dir data/logs/phase1c_direct \
   --max_epochs 3 \
@@ -106,47 +67,83 @@ python scripts/train_phase1c_direct.py \
   --save_steps 1000 \
   --learning_rate 3e-6 \
   --per_device_train_batch_size 4 \
-  --gradient_accumulation_steps 8
-
-  --per_device_train_batch_size 4 \
   --gradient_accumulation_steps 8 \
-  --learning_rate 3e-6 \
   --lora_r 64 \
   --lora_alpha 16
-
-# Features:
-# - Direct training on 7,426 examples (NO bidirectional pairs)
-# - Early stopping: patience=3 checkpoints
-# - Validation monitoring: 5% split (~370 examples)
-# - Convergence detection: loss, perplexity, gradient norms
-# - Automatic best checkpoint restoration
-# - TensorBoard real-time monitoring
-
-# Expected:
-# - Duration: 5-7 hours (stops at convergence)
-# - Cost: ~$15-20 on H100
-# - Improvement: 63.34% → 88-92% pass rate
 ```
 
-**Monitor Training (Real-Time):**
-```bash
-# Open TensorBoard in another terminal
-tensorboard --logdir data/logs/phase1c_direct --port 6006
+**Resume Support:**
+- Training checkpoints allow resuming if interrupted
+- Just add: `--resume_from_checkpoint data/checkpoints/phase1c_direct/checkpoint-XXXX`
 
-# View in browser: http://localhost:6006
+---
+
+## 📝 Step-by-Step Direct Training
+
+### **Step 1: Verify Data Files**
+
+```bash
+# Check combined dataset
+wc -l Phase1C_Targeted_Distillation/data/phase1c_combined_direct.jsonl
+# Expected: 7,426 total examples
+
+# Preview format
+head -1 Phase1C_Targeted_Distillation/data/phase1c_combined_direct.jsonl | jq .
+```
+
+### **Step 2: Direct Training with Early Stopping**
+
+```bash
+cd Phase1C_Targeted_Distillation
+
+# Train directly on combined dataset (NO bidirectional pairs)
+python scripts/train_phase1c_combined_smart.py \
+  --model_name ../Phase1A_Base_Training/models/phase1a_merged_10gb \
+  --dataset data/phase1c_combined_direct.jsonl \
+  --output_dir data/checkpoints/phase1c_direct \
+  --logging_dir data/logs/phase1c_direct \
+  --max_epochs 3 \
+  --patience 3 \
+  --validation_split 0.05 \
+  --eval_steps 500 \
+  --save_steps 1000 \
+  --learning_rate 3e-6 \
+  --per_device_train_batch_size 4 \
+  --gradient_accumulation_steps 8 \
+  --lora_r 64 \
+  --lora_alpha 16
+```
+
+**Features:**
+- Direct training on 7,426 examples (NO bidirectional pairs generation)
+- Early stopping: patience=3 checkpoints (stops when converged)
+- Validation monitoring: 5% split (~371 examples)
+- Convergence detection: monitors loss, perplexity, gradient norms
+- Automatic best checkpoint restoration
+- TensorBoard real-time monitoring
+
+**Expected:**
+- Duration: 5-7 hours (stops at convergence, not fixed 8-10 hours)
+- Cost: ~$15-20 on H100 (saved time from early stopping)
+- Improvement: 63.34% → 88-92% pass rate
+
+**Monitor Training:**
+```bash
+# Real-time TensorBoard monitoring
+tensorboard --logdir data/logs/phase1c_direct --port 6006
+# Open: http://localhost:6006
 # Watch: eval_loss, perplexity, gradient norms
 ```
 
-**Resume Training (if interrupted):**
+**Resume Training:**
 ```bash
 # Find latest checkpoint
 ls -lht data/checkpoints/phase1c_direct/checkpoint-*
 
-# Resume from checkpoint
-python scripts/train_phase1c_direct.py \
-  --model_name Phase1A_2_0/models/phase1a_merged_10gb \
-  --self_critique_data ../Phase1B_Failure_Analysis/data/phase1c_self_critique_train.jsonl \
-  --hard_failures_data ../Phase1B_Failure_Analysis/data/phase1c_hard_failures.jsonl \
+# Resume with same command + checkpoint path
+python scripts/train_phase1c_combined_smart.py \
+  --model_name ../Phase1A_Base_Training/models/phase1a_merged_10gb \
+  --dataset data/phase1c_combined_direct.jsonl \
   --output_dir data/checkpoints/phase1c_direct \
   --resume_from_checkpoint data/checkpoints/phase1c_direct/checkpoint-XXXX
 ```
@@ -157,18 +154,19 @@ python scripts/train_phase1c_direct.py \
 
 ```bash
 # Merge best checkpoint LoRA adapter to base model
-python src/phase1_base/merge_lora.py \
-  --base Phase1A_2_0/models/phase1a_merged_10gb \
-  --adapter data/checkpoints/phase1c_direct/final \
-  --output Phase1A_2_0/models/phase1c_merged_15gb
+python ../src/phase1_base/merge_lora.py \
+  --base ../Phase1A_Base_Training/models/phase1a_merged_10gb \
+  --adapter data/checkpoints/phase1c_direct/checkpoint-best \
+  --output ../Phase1A_Base_Training/models/phase1c_merged_15gb
 
-# Re-evaluate on test set
-python Phase1B_2_0/step3_llm_evaluation.py \
-  --test_dataset "Phase1B_2_0/data/test_dataset_20k.jsonl" \
-  --model_path "Phase1A_2_0/models/phase1c_merged_15gb" \
-  --output_path "Phase1B_2_0/data/phase1c_evaluation.jsonl"
+# Re-evaluate on test set (verify 88-92% pass rate)
+python ../Phase1B_Failure_Analysis/step3_llm_evaluation.py \
+  --test_dataset "../Phase1B_Failure_Analysis/data/test_dataset_20k.jsonl" \
+  --model_path "../Phase1A_Base_Training/models/phase1c_merged_15gb" \
+  --output_path "../Phase1B_Failure_Analysis/data/phase1c_evaluation.jsonl"
 
 # Expected: 88-92% pass rate (up from 63.34%)
+```
 ```
 
 ---
@@ -200,12 +198,13 @@ python Phase1B_2_0/step3_llm_evaluation.py \
 
 ### **Data Issues**
 ```bash
-# Verify data files exist
-ls -lh Phase1B_Failure_Analysis/data/phase1c_*.jsonl
+# Verify combined dataset exists
+ls -lh Phase1C_Targeted_Distillation/data/phase1c_combined_direct.jsonl
+# Expected: 7,426 lines
 
 # Check data format
-head -1 Phase1B_Failure_Analysis/data/phase1c_self_critique_train.jsonl | jq .
-head -1 Phase1B_Failure_Analysis/data/phase1c_hard_failures.jsonl | jq .
+head -1 Phase1C_Targeted_Distillation/data/phase1c_combined_direct.jsonl | jq .
+# Should show: instruction, input (bad), output (corrected), meta (critique)
 ```
 
 ### **Training Issues**
@@ -218,9 +217,8 @@ head -1 Phase1B_Failure_Analysis/data/phase1c_hard_failures.jsonl | jq .
 --patience 5  # Increase patience (more checkpoints before stopping)
 --eval_steps 250  # Evaluate more frequently
 
-# Model loading errors
-# Verify base model path exists
-ls Phase1A_2_0/models/phase1a_merged_10gb/
+# Model loading errors - verify base model path exists
+ls -lh ../Phase1A_Base_Training/models/phase1a_merged_10gb/
 ```
 
 ---
@@ -228,18 +226,20 @@ ls Phase1A_2_0/models/phase1a_merged_10gb/
 ## 📁 Output Files
 
 ```
-data/checkpoints/phase1c_direct/
-├── checkpoint-500/                      # Training checkpoints
-├── checkpoint-1000/
-├── checkpoint-1500/
-├── final/                               # Best model (LoRA adapter)
-└── training_summary.json                # Convergence metrics
+Phase1C_Targeted_Distillation/
+├── data/
+│   ├── checkpoints/
+│   │   └── phase1c_direct/
+│   │       ├── checkpoint-500/         # Training checkpoints
+│   │       ├── checkpoint-1000/
+│   │       ├── checkpoint-1500/
+│   │       └── checkpoint-best/        # Best model (early stopping)
+│   └── logs/
+│       └── phase1c_direct/
+│           └── events.out.tfevents.*   # TensorBoard logs
 
-data/logs/phase1c_direct/
-└── events.out.tfevents.*                # TensorBoard logs
-
-Phase1A_2_0/models/
-└── phase1c_merged_15gb/                 # Final merged model
+Phase1A_Base_Training/models/
+└── phase1c_merged_15gb/                # Final merged model (after Step 3)
 ```
 
 ---
