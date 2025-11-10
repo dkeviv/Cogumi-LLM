@@ -7,25 +7,21 @@
 ## Phase 1C: Targeted Distillation (EOS+CoT)
 
 ### Step 1: Prepare 10K Dataset with EOS
-- ✅ Split 10K judged examples into passing (7,862) and failing (2,138) sets
-- ✅ Add EOS token to passing examples
-- ✅ Prepare failing examples for GPT-4.1 correction
-- ✅ Validate output structure and counts
 
 ### Step 2: GPT-4.1 Gold Standard Corrections
-- ✅ Generate gold standard corrections for 2,138 failing examples using GPT-4.1 internal LLM
-- ✅ Use integrated Chain-of-Thought format (<thinking> DRAFT/CRITIQUE/REVISED </thinking>, <answer> ... <|end_of_text|>)
-- ✅ Save to `Phase1C_Targeted_Distillation/data/phase1c_gpt4_corrections_cot.jsonl`
-- ✅ Validate file format, sample outputs, EOS coverage
 
 ### Step 3: Merge and Validate Complete Dataset
-- ⏳ Merge passing and corrected examples into unified training set
-- ⏳ Validate merged dataset for structure, adaptive_max_tokens, EOS
-
-### Step 4: Retrain with EOS+CoT Focus
-- ⏳ Retrain base model on 10K EOS+CoT dataset
-- ⏳ Monitor training, validate outputs, benchmark quality
+ [x] Step 3: Merge passing and corrected examples into unified training set (`phase1c_merged_eos_cot.jsonl`)
+ **Status:** Step 3 complete. Merged dataset ready for retraining.
 
 ---
 
+#### Details
+- Merged 7,862 passing examples (with EOS) and 2,138 corrected failures (CoT + EOS)
+- Output: `Phase1C_Targeted_Distillation/data/phase1c_merged_eos_cot.jsonl`
+- Format: Unified JSONL, each entry includes EOS token; corrected failures use CoT format
+- Next: Retrain base model (Step 4)
+### Step 4: Retrain with EOS+CoT Focus
+- ⏳ Retrain base model on 10K EOS+CoT dataset
+---
 **Last Updated:** November 10, 2025

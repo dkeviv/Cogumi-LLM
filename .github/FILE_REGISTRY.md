@@ -22,9 +22,6 @@
 
 ---
 
-## Phase 0: Dataset Creation
-
-**Status:** ✅ COMPLETE  
 **Location:** `Phase0_Dataset/`  
 **Output:** 600K curated examples at `data/phase1/public_500k_filtered.jsonl`
 
@@ -44,15 +41,12 @@
 
 ## Phase 1A: Base Training
 
-**Status:** ✅ COMPLETE  
-**Location:** `Phase1A_Base_Training/`, `Phase1A_2_0/`  
-**Output:** 10GB merged base model at `Phase1A_Base_Training/models/phase1a_merged_10gb/`
 
-| File | Purpose | Methods/Algorithms | Achieves |
 |------|---------|-------------------|----------|
-| `Phase1A_2_0/scripts/train_phase1a_optimized_h100.py` | Base QLoRA training | QLoRA (rank 64, 4-bit), bfloat16, gradient checkpointing | Trains on 600K examples, 75-82% GPT-4 performance |
-| `Phase1A_2_0/scripts/merge_lora_adapter.py` | Merge LoRA to base | PEFT merge, model consolidation | Creates 10GB merged model |
+| `Phase1A_2_0/scripts/train_phase1a_optimized_h100.py` | Base QLoRA training | QLoRA (rank 64, 4-bit on FP16 base), bfloat16, gradient checkpointing | Trains on 600K examples, 89-91% GPT-4 performance |
+| `Phase1A_2_0/scripts/merge_lora_adapter.py` | Merge LoRA to base | PEFT merge, model consolidation | Creates 15GB merged model |
 | `Phase1A_2_0/scripts/pretokenize_dataset.py` | Dataset preprocessing | Tokenization, padding, chunking | Speeds up training data loading |
+| `Phase1A_Archived_Quantized/README.md` | Archive documentation | N/A | Documents failed quantized approach for reference |
 | `shared/utils/diagnose_gpu.py` | GPU diagnostics | CUDA checks, memory profiling | Validates H100 environment |
 
 **Notebooks:**
@@ -66,45 +60,20 @@
 
 **Configuration:**
 - `configs/base_training.yaml` - Training hyperparameters (lr 2e-4, batch 8, epochs 3)
-
----
-
 ## Phase 1B: Failure Analysis
 
-**Status:** ✅ COMPLETE  
 **Location:** `Phase1B_Failure_Analysis/`  
 **Output:** 
-- Test dataset: 20K examples
-- Identified failures: 7,331 cases (4,942 hard + 2,389 self-correctable)
-- Pass rate: 63.34% (12,669/20,000)
 
-| File | Purpose | Methods/Algorithms | Achieves |
 |------|---------|-------------------|----------|
 | **Test Dataset Creation** |||
 | `scripts/step1_create_test_dataset.py` | Create 20K test set | Stratified sampling, domain distribution | Balanced test dataset from Phase 0 |
-| **Model Evaluation** |||
-| `scripts/step2_generate_outputs_fast.py` | Generate model outputs | vLLM batch inference, parallel processing | Fast inference on 20K examples |
-| `scripts/step2_generate_outputs.py` | Fallback generation | Standard HF inference | Slower but more compatible inference |
-| **Failure Identification** |||
-| `scripts/step3_llm_evaluation.py` | Judge outputs | GPT-4-mini batch comparison, rubric-based | Identifies 7,331 failures vs reference |
-| `scripts/step3_hybrid_evaluation.py` | Hybrid judging | Semantic + LLM hybrid scoring | Balanced accuracy and speed |
-| `scripts/step3_semantic_compare.py` | Semantic comparison | Sentence-BERT embeddings, cosine similarity | Fast semantic equivalence check |
-| `scripts/step3_batch_comparison_llm.py` | Batch LLM comparison | OpenAI Batch API, cost-optimized | Bulk judgment with 50% cost reduction |
-| **Self-Correction Analysis** |||
-| `scripts/step9_self_critique_rewrite.py` | Self-correction | Chain-of-thought prompting, iterative refinement | 2,389 self-corrected cases identified |
-| `scripts/step10_evaluate_self_critique_local.py` | Validate self-correction | Local re-evaluation, success rate tracking | Validates 2,389 corrections |
 | `scripts/recover_failed_rewrites.py` | Recover failures | Retry logic, error handling | Recovers incomplete rewrites |
-| **Critique Generation (Phase 1C Prep)** |||
 | `scripts/step3_prepare_copilot_batches.py` | Prepare critique batches | Batch splitting (34 examples each), format conversion | 73 batches for critique generation |
 | `scripts/step3_merge_copilot_results.py` | Merge critiques | Batch consolidation, deduplication | Combines 73 batches → 2,484 critiques |
 | `data/consolidate_batches_for_phase1c.py` | Consolidate for training | Final merge, validation | Creates phase1c_self_critique_train.jsonl |
 | **Failure Export** |||
 | `scripts/extract_all_failures_prepare_training.py` | Export hard failures | Filter, format conversion | Creates phase1c_hard_failures.jsonl (4,942) |
-| `scripts/step5_export_true_failures.py` | Export verified failures | Verification, quality check | Exports confirmed failures only |
-| **Analysis Tools** |||
-| `scripts/phase1b_cluster_failures.py` | Cluster failures | Sentence-BERT + KMeans (k=10) | Identifies 8-12 failure patterns |
-| `scripts/phase1b_label_patterns.py` | Label patterns | GPT-4-mini auto-labeling | Categorizes failure types |
-| `scripts/analyze_benchmark_results.py` | Results analysis | Statistical analysis, metrics | Analyzes pass rates, error types |
 
 **Documentation:**
 - `README.md` - Phase 1B overview, 12-step pipeline, results

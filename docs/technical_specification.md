@@ -1,3 +1,27 @@
+# Technical Specification (Updated: 2025-11-10)
+## Phase 1C Step 3: Merging EOS+CoT Dataset
+### Context
+- Objective: Merge 7,862 passing examples (with EOS) and 2,138 GPT-4.1 CoT-corrected failures into a single training set for EOS+CoT retraining.
+- Input files:
+  - `phase1c_passing_with_eos.jsonl` (passing, EOS added)
+  - `phase1c_gpt4_corrections_cot.jsonl` (corrected failures, CoT format)
+- Output file:
+  - `phase1c_merged_eos_cot.jsonl` (10,000 examples)
+### Format
+- Passing: `{ "instruction": ..., "answer": ...<|end_of_text|> }`
+- Corrected: `{ "instruction": ..., "cot": "<thinking>...<answer>...<|end_of_text|>" }`
+- All entries end with EOS token.
+### Algorithm
+- Read both input files line-by-line.
+- Validate format and EOS token presence.
+- Merge into single output file, preserving order: passing first, corrected second.
+- Output: 10,000 JSONL entries, ready for retraining.
+### Validation
+- Count: 10,000 entries (7,862 + 2,138)
+- Format: All entries validated for EOS token and required fields.
+- Spot-checked random samples for correctness.
+### Next Steps
+- Retrain base model using merged dataset (see checklist Step 4).
 # Technical Specification: Phase 1C EOS+CoT Gold Standard Corrections
 
 **Context:**
