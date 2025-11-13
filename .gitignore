@@ -4,142 +4,41 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual Environments
-# NOTE: This project uses 'venv/' as the standard virtual environment
 venv/
-ENV/
 env/
+*.egg-info/
+dist/
+build/
 
-# API Keys and Secrets (CRITICAL - Never commit these!)
+# Data
+data/raw/*
+!data/raw/.gitkeep
+data/phase1_balanced/*.jsonl
+models/*
+!models/.gitkeep
+logs/*.log
+logs/*.txt
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Environment
 .env
-*.pem
-*.key
-secrets/
-credentials/
+.DS_Store
 
-# IDEs
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
-.DS_Store
 
-# Model Files (too large for git)
-models/*.bin
-models/*.safetensors
-models/*.gguf
-models/*.pth
-models/*.pt
-*.ckpt
-*.model
-
-# Data Files (generated, don't commit - CRITICAL: Large files)
-data/phase1/*.jsonl
-data/phase1/*.gz
-data/phase1/scored/*.jsonl
-data/phase2/*.jsonl
-data/phase3a/*.jsonl
-data/phase3b/*.jsonl
-data/*.json
-data/*.csv
-data/*.parquet
-# Keep small test files
-!data/test/*.jsonl
-
-# Logs
-logs/
-*.log
-*.out
-*.err
-
-# Training Outputs
-checkpoints/
-runs/
-wandb/
-mlruns/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-*.ipynb_checkpoints/
-
-# Testing
+# Cache
 .pytest_cache/
-.coverage
-htmlcov/
-.tox/
+.ruff_cache/
+__pycache__/
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Temporary files
-tmp/
-temp/
+# Temporary
 *.tmp
-
-# Large data files
-data/raw/*.jsonl
-data/raw/*.gz
-data/phase*/*.jsonl
-data/phase*/*.gz
-
-# Archive folders (local only, not tracked in git)
-docs/archive/
-docs/archive2/
-scripts/archive/
-configs/archive/
-archive_old_src/
-*.jsonl
-Phase0/data/*.jsonl
-Phase1A_2_0/data/*.jsonl
-Phase 1B_2_0/data/*.jsonl
-
-# Phase 1A/1B model files and checkpoints (too large)
-Phase1A_2_0/models/
-Phase1A_2_0/data/checkpoints/
-Phase 1B_2_0/data/
-
-# NEW PHASE STRUCTURE - Exclude all data and models (CRITICAL)
-Phase*/data/*.jsonl
-Phase*/data/*.json
-Phase*/data/*.gz
-Phase*/data/*.tar
-Phase*/data/*.tar.gz
-Phase*/data/checkpoints/
-Phase*/models/*.bin
-Phase*/models/*.safetensors
-Phase*/models/*.gguf
-Phase*/models/*.pth
-Phase*/models/*.pt
-Phase*/models/*/
-
-# Keep only small test files and READMEs
-!Phase*/data/*.md
-!Phase*/data/README.md
-!Phase*/models/README.md
-!Phase*/data/test/*.jsonl
-
-# Shared folder - exclude large files
-shared/data/
-shared/models/
+*.bak
+/tmp/

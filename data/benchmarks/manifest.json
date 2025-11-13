@@ -1,0 +1,36 @@
+{
+  "benchmarks": [
+    {
+      "name": "MMLU",
+      "count": 14042,
+      "file": "data/benchmarks/mmlu.jsonl"
+    },
+    {
+      "name": "GPQA",
+      "count": 1319,
+      "file": "data/benchmarks/gpqa.jsonl"
+    },
+    {
+      "name": "HumanEval",
+      "count": 164,
+      "file": "data/benchmarks/humaneval.jsonl"
+    },
+    {
+      "name": "MATH",
+      "count": 1319,
+      "file": "data/benchmarks/math.jsonl"
+    },
+    {
+      "name": "MGSM",
+      "count": 249,
+      "file": "data/benchmarks/mgsm.jsonl"
+    },
+    {
+      "name": "DROP",
+      "count": 9535,
+      "file": "data/benchmarks/drop.jsonl"
+    }
+  ],
+  "total_questions": 26628,
+  "output_dir": "data/benchmarks"
+}
