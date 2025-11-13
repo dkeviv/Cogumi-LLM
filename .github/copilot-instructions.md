@@ -3,278 +3,44 @@ applyTo: '**'
 ---
 Provide project context and coding guidelines that AI should follow when generating code, answering questions, or reviewing changes.
 
+## SESSION START PROTOCOL (MANDATORY)
 
-# GitHub Copilot Context - Cogumi-LLM Pipeline
+**At the start of EVERY new session or conversation:**
 
-## 🎯 SIMPLIFIED PIPELINE FLOW - ALWAYS FOLLOW THIS SEQUENCE
+1. ✅ **Read QUICK_START.md FIRST** - Fast context snapshot (1 page, updated after major changes)
+2. ✅ **Read .github/Revised_complete_pipeline.md** (at least first 100 lines) for complete pipeline architecture
+3. ✅ **Read docs/IMPLEMENTATION_CHECKLIST.md** to see current phase and completed tasks
+4. ✅ **Scan docs/technical_specification.md** (last 50-100 lines) for recent implementation changes
+5. ✅ **Display brief status** to user:
+   ```
+   📍 Current Phase: [Phase X]
+   ✅ Last Completed: [Task description]
+   ⏳ In Progress: [Current work]
+   🎯 Next: [Next task]
+   📋 Architecture: [Brief 1-line summary]
+   ```
 
-### **Llama-3.1-8B-Instruct→ 668MB System Beating GPT-4**
-
-**Phase 0: Dataset Creation** ✅ **COMPLETE**
-
-- Multi-teacher distillation: Llama-405B (40%), GPT-4o (35%), Qwen3-Coder-480B (25%)
-- Quality filtering: GPT-4-mini scoring (>7/10 threshold)
-- MinHash LSH deduplication: Jaccard 0.8, removed 150K duplicates
-- Output: 600K curated examples at `/data/phase1/public_500k_filtered.jsonl`
-
----
-
-### **Phase 1: Base Model Training** (4 weeks, $505)
-
-**1.1 Vocabulary Trimming**
-
-- Student model: Llama-3.1-8B-Instruct (8.3B parameters)
-- Vocabulary optimization: 128K tokens → 25K tokens (saves 3.4GB)
-- Method: Token frequency analysis on 10K English samples
-- Validation: <3% perplexity increase, 99.5%+ coverage
-
-**1.2 Base QLoRA Training (Phase 1A)**
-
-- Framework: Axolotl with QLoRA (rank 64, 4-bit)
-- Dataset: 600K curated examples from Phase 0
-- Training: 3 epochs, ~28K steps, early stopping
-- Duration: 2.5 weeks on A100 40GB
-- Cost: $220 (120 GPU-hours @ $1.89/hr)
-- Output: 10GB merged base model
-- Performance: 75-82% GPT-4
-
-**1.3 Failure Analysis (Phase 1B)**
-
-- Comprehensive testing: 50K diverse examples across domains
-- Failure identification: 12-14K failures detected
-- Clustering: Sentence-BERT embeddings + KMeans (k=10)
-- Auto-labeling: GPT-4-mini identifies 8-12 failure patterns
-- Cost: $5
-
-**1.4 GPT-5 Targeted Distillation (Phase 1C)**
-
-- Teacher: GPT-5 (elite model for hardest cases)
-- Data generation: 40K examples targeting failure patterns
-- Quality filtering: GPT-4-mini (>8/10), yields 40K high-quality
-- Training: 90% GPT-5 data + 10% original (prevent forgetting)
-- Learning rate: 3e-6 (lower to avoid catastrophic forgetting)
-- Duration: 5 days on A100
-- Cost: $280 GPT-5 + $5 scoring
-- Output: 10GB enhanced base model
-- **Performance: 88-100% GPT-4** ✅
+**This ensures context continuity across sessions and prevents working with outdated assumptions.**
 
 ---
 
-### **Phase 2: Extreme Compression** (6 weeks, $402)
+## (CRITICAL) Context
 
-**2.1 Neural Magic Structured Pruning (2 weeks, $180)**
-
-- Technique: Neural Magic llm-compressor
-- Target sparsity: 65% (remove 65% of weights)
-- Method: Gradual pruning over 2K steps (0% → 16.25% → 32.5% → 48.75% → 65%)
-- Calibration: 10K diverse samples
-- Post-pruning recovery: 8 hours fine-tuning (lr 1e-6)
-- Output: 3.5GB sparse model
-- Quality loss: 2-4%
-
-**2.2 AWQ 4-bit Quantization (1 week, $90)**
-
-- Technique: AutoAWQ mixed-precision quantization
-- Bits: 4-bit with group size 128
-- Calibration: 2K samples
-- Output: 900MB quantized model
-- Quality loss: 2-3% (cumulative: 4-7%)
-
-**2.3 GGUF Export (3 days)**
-
-- Technique: llama.cpp GGUF format
-- Variant: Q5_K_M (mixed 5-bit/6-bit)
-- Validation: 95%+ token agreement with original
-- Output: 600MB GGUF model
-- Quality loss: 1-2% (cumulative: 5-9%)
-
-**2.4 Zstd Lossless Compression (2 days)**
-
-- Technique: Zstandard with dictionary training
-- Dictionary: 128KB trained on 100MB sample
-- Compression level: 10 (maximum)
-- Validation: SHA-256 checksum verification
-- Output: 500MB compressed model
-- Quality loss: 0% (lossless)
-
-**2.5 Recovery Fine-Tuning (1 week, $70)**
-
-- Selection: Hardest 12K examples (top 2% perplexity)
-- Enhancement: GPT-5 improves examples
-- Training: Conservative LoRA (rank 64, lr 8e-7, 2 epochs)
-- Output: 520MB recovered base + 20MB LoRA
-- Quality improvement: +1-2%
-- **Final: 520MB base, 89-91% GPT-4** ✅
-
-**2.6 Confidence Calibration (3 days, $35)**
-
-- Data collection: 30K queries with logits
-- Labeling: GPT-4-mini quality scoring
-- Methods: Temperature scaling + Platt scaling
-- Validation: ECE <0.05, 97% routing accuracy
-- Output: Calibrators for routing system
+Refer to the below file everytime to retain context: **".github/Revised_Complete_Pipeline.md"** -> This has the full context
 
 ---
 
-### **Phase 3: Domain Modifiers - 3-Tier Cascaded Teaching** (4 weeks, $685)
+## (CRITICAL) Must do checks for scripts(MANDATORY)
 
-**3-Tier Strategy** (saves 61% cost vs single-teacher):
+While creating training script and merge script, confirm with the developer on the precision , INT vs FP etc .
 
-- **Tier 1 (60-70%):** Free/cheap models handle easy cases
-- **Tier 2 (20-25%):** Mid-tier models (GPT-4o, DeepSeek) for moderate difficulty
-- **Tier 3 (10-15%):** GPT-5 for hardest cases only
+In the training scripts, include data validation as the first step and not proceed if data issues found.
 
-**Reusable Pipeline for Each Modifier:**
+When updating a file, make sure to read the file to get the context , avoid any duplicate code or redundant code. Create optimal code with good commentary to help getting the context when you read the file. Make sure the commentary is crisp with minimal words but most meaningful
 
-1. Test base on 12K domain tasks → identify failures
-2. Generate Tier 1 data for failures (9K examples)
-3. Test Tier 1 → identify remaining failures
-4. Generate Tier 2 data for remaining
-5. Test Tier 2 → identify remaining failures
-6. Generate Tier 3 data with GPT-5
-7. Train LoRA adapter on combined data
-8. Compress modifier via pruning (260MB → 40-48MB)
-
-**3.1 Code Modifier** (Week 11-12, $200, 47MB)
-
-- Teachers: Qwen-Coder-480B (Tier 1), DeepSeek-Coder (Tier 2), GPT-5 (Tier 3)
-- LoRA rank: 128
-- Training: 12.5K examples (9K + 2K + 1.5K)
-- Compression: 78-85% sparsity → 47MB
-- **Performance: 115-130% GPT-4 on HumanEval, MBPP** ✅
-
-**3.2 Reasoning Modifier** (Week 12-13, $207, 48MB)
-
-- Teachers: Llama-405B FREE (Tier 1), GPT-4o (Tier 2), GPT-5+COT (Tier 3)
-- LoRA rank: 112
-- Training: 17K examples (12K + 3K + 2K)
-- Compression: 78-85% sparsity → 48MB
-- **Performance: 100-108% GPT-4 on MMLU, BBH** ✅
-
-**3.3 Automation Modifier** (Week 13-14, $170, 40MB)
-
-- Teachers: Claude-3.5 (Tier 1), GPT-4o (Tier 2), GPT-5 (Tier 3)
-- LoRA rank: 96
-- Training: 11.5K examples (8K + 2K + 1.5K)
-- Compression: 78-85% sparsity → 40MB
-- **Performance: 105-118% GPT-4 on tool-use tasks** ✅
-
-**Modifier Compression Techniques:**
-
-- Initial LoRA adapter: 260MB uncompressed
-- Pruning: Test sparsity levels (78%, 82%, 85%)
-- Target: 40-48MB per modifier
-- Validation: Must exceed 115% GPT-4 for code, 100% for reasoning, 105% for automation
+Don't reuse a script from a different phase. If it can be reused create another copy with phase number included in the file name
 
 ---
-
-### **Phase 4: Router System** (2 weeks, $75)
-
-**4.1 Router Training** (1 week, $45, 13MB)
-
-- Architecture: 3-layer feedforward (input 128 → hidden 64,32 → output 4)
-- Features: Confidence scores, query embeddings, session history
-- Training data: 35K labeled examples (query → correct model decision)
-- Validation: 5K holdout set
-- **Performance: 97% routing accuracy** ✅
-- Latency: <5ms on M4 Pro Mac
-
-**4.2 Escalation Detector** (4 days, $30, 3MB)
-
-- Purpose: Detect user dissatisfaction
-- Base: BERT-base-uncased (110MB)
-- Training: 6K dissatisfaction examples
-- Distillation: LSTM (110MB → 3MB, 36.7x compression)
-- **Performance: 94% detection accuracy** ✅
-- Latency: <3ms
-
-**4.3 Threshold Optimization** (2 days)
-
-- A/B testing: 75%, 80%, 85% confidence thresholds
-- Test size: 5K queries
-- Optimal: 80% (balanced quality vs cost)
-- Expected distribution: Base 45-55%, Code 20-25%, Reasoning 15-20%, Automation 10-15%
-
-**Session Memory:**
-
-- Storage: SQLite (lightweight persistence)
-- Tracking: Last 5 queries, routing decisions, success/failure
-- Learning: Improve routing from session history
-
----
-
-### **Phase 5: Deployment & Validation** (1 week, $100)
-
-**5.1 HuggingFace Upload** (Day 1-2)
-
-- Repository: cogumi-llm-mvp
-- Components: 520MB base + 135MB modifiers + 13MB router + 3MB escalation
-- Total: 671MB
-
-**5.2 Inference API Setup** (Day 2-3)
-
-- Instance: T4 GPU (serverless)
-- Features: Streaming responses, REST API
-- Cost per query: ~$0.003
-
-**5.3 Gradio Interface** (Day 3-4)
-
-- Features: Chat, history, router visualization, manual override
-- Deployment: HuggingFace Spaces (cogumi-chat)
-
-**5.4 Monitoring Dashboard** (Day 5)
-
-- Platform: Grafana
-- Metrics: Query volume, routing distribution, quality scores, latency, cost
-
-**5.5 Validation** (Day 6-7, $100)
-
-- Automated quality gates: Code >72%, Reasoning >70%, Automation >75%
-- Human evaluation: 100 users × 20 tasks, target >7.5/10
-- Performance benchmarks: M4 Pro 60+ tps, RTX 4090 80+ tps, A100 120+ tps
-
----
-
-## 📊 FINAL SYSTEM SPECIFICATIONS
-
-**Total Size:** 668MB
-
-- Base model: 520MB (89-91% GPT-4)
-- Code modifier: 47MB (115-130% GPT-4)
-- Reasoning modifier: 48MB (100-108% GPT-4)
-- Automation modifier: 40MB (105-118% GPT-4)
-- Router: 13MB (97% accuracy)
-- Escalation detector: 3MB (94% accuracy)
-
-**Runtime Memory:** 568MB max (520MB base + 48MB largest modifier)
-
-**MVP Timeline:** 14 weeks (Phase 0 complete, Phases 1-5 pending)
-
-**MVP Cost:** $1,717 total
-
-- Phase 0: $0 (complete)
-- Phase 1: $505
-- Phase 2: $402
-- Phase 3: $685
-- Phase 4: $75
-- Phase 5: $100
-
-**Inference Performance:**
-
-- M4 Pro Mac: 60+ tokens/sec
-- RTX 4090: 80+ tokens/sec
-- A100: 120+ tokens/sec
-- HuggingFace T4: 40+ tokens/sec
-
----
-
-## CRITICAL PROJECT CONTEXT - READ AFTER PIPELINE FLOW
-
-### Current Status
-
-- **Phase 0:** ✅ COMPLETE (600K dataset ready)
-- **Phase 1-5:** ⏳ PENDING
-- **Overall Progress:** 6% (Phase 0 done, infrastructure ready)
 
 ### Code Conventions
 
@@ -469,7 +235,7 @@ python script.py
 
    - Update technical_specification.md with replacement info
    - Update any references in other files
-   - Add changelog entry in CURRENT_STATUS.md
+   - Update IMPLEMENTATION_CHECKLIST.md if needed
 4. **For superseded (still functional) scripts:**
 
    ```python
@@ -519,23 +285,19 @@ src/
 - Multiple versions with no clear "current" indicator → Mark clearly
 - No performance comparison in deprecation header → Add benchmarks
 
-Activate venv for all terminals
+## CRITICAL: Best Practices (MANDATORY)
 
-## After every feature implementation or bug fix, run all tests and linters to make sure nothing is broken. Make sure to add tests for new features or bug fixes and run tests to make sure features implemented before are working - Do smart tests for regression - not the full regression that is time consuming.
-
-## Create context comment for every file created at the top of the file created and update the context comment for every file modified.
-
-## Create proper commented code - every function, class, method should have proper docstring comments.
-
-## Follow PEP8 coding style guidelines for Python code.
-
-## Follow best practices for Python code.
-
-## Use type hints for function signatures and variable declarations.
-
-## Include guard rails for error handling and edge cases.
-
-## Include proper error handling and logging.
+* Activate venv for all terminals
+* After every feature implementation or bug fix, run all tests and linters to make sure nothing is broken. Make sure to add tests for new features or bug fixes and run tests to make sure features implemented before are working - Do smart tests for regression - not the full regression that is time consuming.
+* Create context comment for every file created at the top of the file created and update the context comment for every file modified.
+* Create proper commented code - every function, class, method should have proper docstring comments.
+* Follow PEP8 coding style guidelines for Python code.
+* Follow best practices for Python code.
+* Use type hints for function signatures and variable declarations.
+* Include guard rails for error handling and edge cases.
+* Include proper error handling and logging.
+* when making changes to requirements.txt, ensure compatibility with dependencies and if deleting any words/lines make you are not missing any context from the deleted lines
+* Prompt appropriately after a feature is implemented to do git commit and git push to the remote repository
 
 ## **Naming** (STRICT):
 
@@ -548,7 +310,6 @@ Activate venv for all terminals
 
 - Synchronous API calls
 - Non-batch API usage
-- Full precision training
 - Multilingual data generation
 - Libraries not in requirements.txt
 
@@ -566,22 +327,12 @@ Activate venv for all terminals
 
 ## Read These Files:
 
-- `.copilot-context.md`: Full project context
-- `.naming-conventions.md`: Naming standards
-- `.adr/*.md`: Architecture decisions
-- `.copilot-templates/*.py`: Code patterns
-
-when making changes to requirements.txt, ensure compatibility with dependencies and if deleting any words/lines make you are not missing any context from the deleted lines
-
-### Prompt appropriately after a feature is implemented to do git commit and git push to the remote repository
-
-### After every todo task completion, ALWAYS check the Problems panel and fix all errors before marking the task as complete or moving to the next task. Use get_errors tool to check for compile errors, type errors, and linting issues. Fix all problems to maintain code quality.
-
-### After every todo task completion, ALWAYS update .github/IMPLEMENTATION_CHECKLIST.md to reflect completed work. Mark tasks as complete (❌ → ✅), update status sections, and add implementation details. This keeps the checklist synchronized with actual progress.
+- **.github/Revised_complete_pipeline.md**: Full project context and current pipeline architecture
 
 ### CRITICAL: Maintain .github/IMPLEMENTATION_CHECKLIST.md as Master Project Plan (MANDATORY)
 
 **Purpose:** IMPLEMENTATION_CHECKLIST.md is the authoritative, detailed project plan that captures:
+
 - Current state of all phases
 - Completed vs pending tasks
 - Status markers (✅/⏳/❌)
@@ -627,11 +378,13 @@ when making changes to requirements.txt, ensure compatibility with dependencies 
 - Is technical approach accurate (no obsolete methods)?
 - Are dependencies correctly marked?
 
-### Maintain features.md to keep track of features implemented and pending features to be implemented. Keep it updated.
+### (CRITICAL) Files to maintain accurately (MANDATORY)
 
-### Maintain technical implementation notes in the technical_notes.md file for future reference and knowledge sharing. Keep it updated with relevant information.
+Before updating the documentations  review the code if it is indeed implemented and tested properly.
 
-### Maintain technical_specification.md to document implementation details for all completed tasks. Update this file every time a todo list task is completed, capturing technical decisions, code structure, libraries used, and validation steps.
+Maintain features.md to keep track of features implemented and pending features to be implemented. Keep it updated.
+
+Maintain technical_specification.md to document implementation details for all completed tasks. Update this file every time a todo list task is completed, capturing technical decisions, code structure, libraries used, and validation steps.
 
 **CRITICAL:** After ANY update to technical_specification.md, read the ENTIRE file to verify accuracy. technical_specification.md is supposed to capture what was actually implemented and HOW it was implemented. Keep it accurate and up-to-date.
 
@@ -719,159 +472,55 @@ when making changes to requirements.txt, ensure compatibility with dependencies 
 - "Performance slower than expected" → Check scaling issues with small vs large datasets
 - "Import errors in multiprocessing" → Check for circular import patterns
 
-### Before updating anything as complete in the features.md , implementation_checklist double confirm if it is indeed implemented and tested properly.
-
-### When updating a file, make sure to read the file to get the context , avoid any duplicate code or redundant code. Create optimal code with good commentary to help getting the context when you read the file. Make sure the commentary is crisp with minimal words but most meaningful
-
-### Clear any temporary to keep the workspace clean. Maintain a separate folder for such teporary test and debug files
-
 ## Context Retention & Session Continuity
 
 ### CRITICAL: Always Check Current Architecture
 
-**CURRENT PIPELINE (October 2025):** Llama-3.1-8B-Instruct with Multi-Phase Compression & Modifiers
-
-- **Status:** ACTIVE - Phase 0 Complete, Phases 1-5 in progress
-- **Student Model:** Llama-3.1-8B-Instruct(8.3B parameters)
-- **Dataset:** 600K examples via multi-teacher distillation (Llama-405B, GPT-4o, Qwen3-Coder-480B)
-- **Final Size:** 668MB (520MB base + 135MB modifiers + 13MB router)
-- **Performance:** Beats GPT-4 on code (115-130%), reasoning (100-108%), automation (105-118%)
-- **Cost:** $1,717 MVP (Phase 0: $0, Phase 1: $505, Phase 2: $402, Phase 3: $685, Phase 4: $75, Phase 5: $100)
-- **Timeline:** 14 weeks total
-- **Rationale:** Extreme compression (19.2x) with domain specialization beats monolithic models
+**Review the file ".github/Revised_complete_pipeline.md" for the current architecture**
 
 ### Before Making Any Changes
 
-1. **Read CURRENT_STATUS.md FIRST** - Single source of truth for project status
+1. **Read .github/Revised_complete_pipeline.md FIRST** - Primary reference for current pipeline
 2. **Check docs/IMPLEMENTATION_CHECKLIST.md** - Current phase and completed tasks
-3. **Verify Current Architecture** - Llama-3.1-8B-Instruct with multi-phase compression
-4. **Check Simplified Pipeline Flow** - Top of this file for exact sequence
-5. **Review Recent Changelog** - Bottom of CURRENT_STATUS.md for latest decisions
+3. **Verify Current Architecture** - Refer to Revised_complete_pipeline.md for details
+4. **Check technical_specification.md** - Implementation details and algorithms used
 
 ### Key Context Files (Read Before Major Changes)
 
-1. **docs/CURRENT_STATUS.md** - PRIMARY reference (Phase 0 complete, overall 6% progress)
-2. **docs/IMPLEMENTATION_CHECKLIST.md** - Detailed task tracking across all 6 phases
-3. **docs/EXECUTION_PLAN.md** - Step-by-step week-by-week execution guide
-4. **docs/technical_specification.md** - Complete technical methodology and architecture
+1. **QUICK_START.md** - Fast context snapshot (updated after major changes, read this FIRST in new sessions!)
+2. **.github/Revised_complete_pipeline.md** - PRIMARY reference for complete pipeline architecture
+3. **docs/IMPLEMENTATION_CHECKLIST.md** - Detailed task tracking with checkboxes
+4. **docs/technical_specification.md** - Complete technical methodology and implementation details
 5. **README.md** - Project overview, quick start, benchmarks
-6. **configs/*.yaml** - Training and compression configurations for each phase
-7. ***Don't keep creating new markdowns without asking. It is critical to keep limited documents or tracking is harder and confusing***
+6. ***Don't keep creating new markdowns without asking. It is critical to keep limited documents or tracking is harder and confusing***
 
 ### Documentation Guidelines (STRICT)
 
 - **NEVER create new summary/overview MD files** - Consolidate into existing docs
-- **Use CURRENT_STATUS.md as single source of truth** - Merge new content here
-- **Changelog format:** 1 paragraph per major change (in CURRENT_STATUS.md)
+- **Use Revised_complete_pipeline.md as primary reference** - Full pipeline architecture
 - **Before creating new doc:** Check if content fits in existing file
-- **Active docs target:** 4 core docs + README + phase READMEs
-- **Archive completed work:** Old pipeline docs moved to docs/archive2/
+- **Active docs target:** Keep limited documents for easier tracking
+- **Archive completed work:** Move old/obsolete docs to archive folders
 
 ### Session Continuity Checklist
 
 When resuming work or starting new features:
 
-- [ ] Read CURRENT_STATUS.md to understand current state
-- [ ] Review Simplified Pipeline Flow (top of this file)
+- [ ] Read Revised_complete_pipeline.md to understand current pipeline architecture
+- [ ] Review technical_specification.md for implementation details
 - [ ] Check IMPLEMENTATION_CHECKLIST.md for completed/pending tasks
-- [ ] Review recent changelog entries (last 2-3 entries)
-- [ ] Verify Phase 0 dataset location: `/data/phase1/public_500k_filtered.jsonl`
 - [ ] Check if new work fits existing documentation structure
 - [ ] Verify venv is activated before any Python operations
 - [ ] Run tests/linters after changes to catch regressions
 
-### Cost & Performance Targets (Current Pipeline)
-
-- **Total Budget:** $1,717 (Phase 0-5 MVP)
-- **Dataset Size:** 600K curated examples (Phase 0 complete)
-- **Model Size:** 668MB total (520MB base + 135MB modifiers + 13MB router)
-- **Performance:**
-  - Base: 89-91% GPT-4
-  - Code: 115-130% GPT-4 (HumanEval, MBPP)
-  - Reasoning: 100-108% GPT-4 (MMLU, BBH)
-  - Automation: 105-118% GPT-4 (ToolBench)
-- **Training Time:** Phase 1: 4 weeks, Phase 2: 6 weeks, Phase 3: 4 weeks
-- **Compression Ratio:** 19.2x (10GB → 520MB)
-
-### Common Context Mistakes to Avoid
-
-❌ **Don't assume old Qwen pipeline** - We're using Llama-3.1-8B-Instruct now
-❌ **Don't skip vocabulary trimming** - 128K → 25K is Phase 1 step 1
-❌ **Don't forget 3-tier cascading** - Cost optimization for modifiers
-❌ **Don't create new summary docs** - Consolidate into existing 4 core docs
-❌ **Don't forget Phase 0 is complete** - 600K dataset already ready
-❌ **Don't use old compression targets** - New target is 520MB (not 480MB)
-❌ **Don't skip calibration** - Phase 2F is critical for routing accuracy
-
-### Phase-Specific Context
-
-**Phase 0 (COMPLETE):** Dataset Creation ✅
-
-- Multi-teacher distillation complete
-- 600K curated examples ready
-- Location: `/data/phase1/public_500k_filtered.jsonl`
-- Quality: 8.2/10 average, 0% duplicates post-LSH
-
-**Phase 1 (NEXT PRIORITY):** Base Model Training
-
-- Vocabulary trimming: 128K → 25K tokens
-- QLoRA training on 600K examples (Phase 1A)
-- Failure analysis + clustering (Phase 1B)
-- GPT-5 targeted distillation (Phase 1C)
-- Output: 10GB enhanced base (88-100% GPT-4)
-
-**Phase 2 (PENDING):** Compression
-
-- Neural Magic pruning: 10GB → 3.5GB
-- AWQ quantization: 3.5GB → 900MB
-- GGUF export: 900MB → 600MB
-- Zstd compression: 600MB → 500MB
-- Recovery fine-tuning: 500MB → 520MB
-- Confidence calibration for routing
-
-**Phase 3 (PENDING):** Domain Modifiers
-
-- Code modifier: 3-tier teaching, 47MB
-- Reasoning modifier: 3-tier teaching, 48MB
-- Automation modifier: 3-tier teaching, 40MB
-- All use cascaded approach to save 61% cost
-
-**Phase 4 (PENDING):** Router System
-
-- Router: 13MB, 97% accuracy
-- Escalation detector: 3MB, 94% accuracy
-- Threshold optimization: 80% default
-
-**Phase 5 (PENDING):** Deployment
-
-- HuggingFace upload and Inference API
-- Gradio chat interface
-- Monitoring dashboard
-- Comprehensive validation
-
-### Quick Reference: Key Decisions
-
-| Decision         | Choice                | Rationale                                      |
-| ---------------- | --------------------- | ---------------------------------------------- |
-| Student Model    | Llama-3.1-8B-Instruct | +14% params vs Qwen-7B, +2-3% English baseline |
-| Data Source      | Multi-teacher (600K)  | Llama-405B + GPT-4o + Qwen-Coder diversity     |
-| Deduplication    | MinHash LSH @ 0.8     | Removed 150K duplicates (20% of data)          |
-| Base Training    | QLoRA 4-bit           | Cost-effective for 8B model                    |
-| Compression      | 5-stage pipeline      | 19.2x compression (10GB → 520MB)              |
-| Modifiers        | 3-tier cascaded       | 61% cost savings vs single-teacher             |
-| Target Base      | 89-91% GPT-4          | Realistic after extreme compression            |
-| Target Modifiers | 100-130% GPT-4        | Domain specialization beats monolithic         |
-| Docs             | 4 core + README       | Minimal, maintainable structure                |
-| Timeline         | 14 weeks MVP          | Phase 0 complete (6% progress)                 |
-
 ### Documentation Structure & Update Guidelines
 
-**CURRENT_STATUS.md - High-Level Audit Trail:**
+**Revised_complete_pipeline.md - Primary Architecture Reference:**
 
-- Purpose: Searchable changelog of decisions for audit
-- Format: Date + Decision + Rationale (1-2 sentences each)
-- Update when: Major architecture/cost/dataset decisions made
-- Keep: High-level only, easy to scan for past decisions
+- Purpose: Complete pipeline architecture and phase definitions
+- Format: Phases → steps → methods → expected outcomes
+- Update when: Major architecture/approach changes or phase transitions
+- Keep: Current architecture and methodology
 
 **technical_specification.md - Detailed Implementation:**
 
@@ -880,14 +529,7 @@ When resuming work or starting new features:
 - Update when: Every todo task completion with full technical depth
 - Keep: Very clear, precise, reproducible implementation details
 
-**EXECUTION_PLAN.md - High-Level Task List:**
-
-- Purpose: Project roadmap and phase overview
-- Format: Phases → major milestones → success criteria
-- Update when: Phase transitions or major scope changes
-- Keep: Strategic overview, not detailed steps
-
-**IMPLEMENTATION_CHECKLIST.md - Low-Level Task List:**
+**IMPLEMENTATION_CHECKLIST.md - Task Tracking:**
 
 - Purpose: Granular task tracking with checkboxes
 - Format: Nicely formatted checklist with status indicators
@@ -896,10 +538,9 @@ When resuming work or starting new features:
 
 ### When to Update Each File
 
-- **CURRENT_STATUS.md:** Add changelog entry for decisions (architecture, datasets, costs, approach changes)
+- **Revised_complete_pipeline.md:** Update when pivoting strategies, changing architecture, or completing phases
 - **technical_specification.md:** Document algorithms, thresholds, code structure after implementation. **CRITICAL: Review entire file after updates to ensure accuracy.**
-- **EXECUTION_PLAN.md:** Update phase status and high-level milestones
-- **IMPLEMENTATION_CHECKLIST.md:** Check off subtasks as completed
+- **IMPLEMENTATION_CHECKLIST.md:** Check off subtasks as completed, update status markers
 - **Never:** Create new summary/overview docs (consolidate into above structure)
 
 ### Technical Specification Requirements
@@ -913,15 +554,28 @@ When resuming work or starting new features:
 
 ### BEFORE Every Response, Ask Yourself:
 
-1. **Pipeline Check:** Am I following the Simplified Pipeline Flow (see top of this file)?
-2. **Phase Check:** Is Phase 0 complete? Are we starting Phase 1?
-3. **Model Check:** Am I using Llama-3.1-8B-Instruct (NOT Qwen-7B)?
-4. **Cost Check:** Am I using current budget ($1,717 MVP)?
-5. **Compression Check:** Am I using 5-stage compression (Neural Magic → AWQ → GGUF → Zstd → Recovery)?
-6. **Modifier Check:** Am I using 3-tier cascaded teaching for cost optimization?
-7. **Docs Check:** Am I consolidating into 4 core docs (NOT creating new ones)?
-8. **Git Check:** Did I prompt for git commit after implementing features?
-9. **Context Check:** Did I read CURRENT_STATUS.md before making changes?
+1. **Pipeline Check:** Am I following the pipeline in .github/Revised_complete_pipeline.md?
+2. **Phase Check:** What phase are we in? Check actual implementation status
+3. **Model Check:** Am I using the correct model as specified in Revised_complete_pipeline.md?
+4. **Docs Check:** Am I consolidating into existing docs (NOT creating new ones)?
+5. **Git Check:** Did I prompt for git commit after implementing features?
+6. **Context Check:** Did I read Revised_complete_pipeline.md before making changes?
+
+### CONTEXT VALIDATION (Every Session)
+
+**Before responding to first user query, internally verify:**
+
+- ✓ **What phase are we in?** (Read IMPLEMENTATION_CHECKLIST.md)
+- ✓ **What's the current architecture?** (Read Revised_complete_pipeline.md)
+- ✓ **What was the last change?** (Check technical_specification.md recent updates)
+- ✓ **Any recent pivots?** (Look for "PIVOTED:" or "UPDATED:" markers in docs)
+
+**If context unclear → Ask user to confirm current state before proceeding.**
+
+**Red Flags:**
+- Documents contradict each other → Ask user which is current
+- Implementation doesn't match documentation → Verify actual state
+- Major architecture changes not documented → Confirm with user
 
 ### COLLABORATION & DECISION MAKING
 
@@ -933,9 +587,9 @@ When resuming work or starting new features:
 ### After Every Feature/Change:
 
 - [ ] Run tests/linters
-- [ ] Update relevant documentation (CURRENT_STATUS.md or IMPLEMENTATION_CHECKLIST.md)
+- [ ] Update relevant documentation (technical_specification.md or IMPLEMENTATION_CHECKLIST.md)
 - [ ] **Prompt user to commit and push changes**
-- [ ] Verify changes match current architecture plan
+- [ ] Verify changes match current architecture plan in Revised_complete_pipeline.md
 
 ### Checklist Display & Alignment
 
@@ -944,7 +598,7 @@ When resuming work or starting new features:
 
 ### After Every Todo Task Completion:
 
-- [ ] **Validate ALL success criteria** from EXECUTION_PLAN.md
+- [ ] **Validate ALL success criteria** defined for the task
 - [ ] Document validation results in validation log format
 - [ ] **If ANY criterion fails → STOP, do NOT mark complete, iterate**
 - [ ] Only mark todo complete when ALL success criteria pass
