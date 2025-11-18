@@ -1,0 +1,34 @@
+{
+  "total_examples": 53597,
+  "train_examples": 53395,
+  "test_examples": 202,
+  "test_percentage": 0.3768867660503386,
+  "train_difficulty_dist": {
+    "easy": 52722,
+    "hard": 673
+  },
+  "test_difficulty_dist": {
+    "easy": 194,
+    "hard": 8
+  },
+  "train_domain_dist": {
+    "Reasoning": 7414,
+    "Reading": 4942,
+    "Math": 7419,
+    "Coding": 7416,
+    "Tool Use": 7417,
+    "Instruction": 4944,
+    "Summarization": 6423,
+    "Common Sense": 7420
+  },
+  "test_domain_dist": {
+    "Reasoning": 28,
+    "Reading": 19,
+    "Math": 28,
+    "Coding": 28,
+    "Tool Use": 28,
+    "Instruction": 19,
+    "Summarization": 24,
+    "Common Sense": 28
+  }
+}

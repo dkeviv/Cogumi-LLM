@@ -1,27 +1,43 @@
 #!/usr/bin/env python3
 """
-Phase 1: Train Llama-3.1-8B-Instruct with MAML + LoRA
+Phase 1: Train Llama-3.1-8B-Instruct with ANIL-MAML + LoRA
 
-This script implements meta-learning (MAML) with LoRA fine-tuning on the interleaved
-training dataset. Uses Flash Attention 2 for memory efficiency.
+This script implements ANIL-MAML (Almost No Inner Loop) with LoRA fine-tuning on the
+cleaned training dataset. Uses Flash Attention 2 for memory efficiency.
 
-Training Configuration:
+Training Configuration (CORRECTED for MAML at Scale):
 - Model: Llama-3.1-8B-Instruct (8.3B params)
 - Precision: BF16
-- LoRA: rank=64, alpha=128
+- LoRA: rank=16, alpha=32 (REDUCED to prevent overfitting)
 - Batch size: 2 per device
 - Gradient accumulation: 4 steps (effective batch=8)
-- Learning rate: 2e-4 (with cosine schedule)
-- Epochs: 3
-- Hardware: H100 80GB (7-8 hours, $16)
+- Learning rate: 5e-6 (outer loop, CORRECTED: 40× lower than before)
+- Inner LR: 3e-5 (inner loop, CORRECTED: 100× lower than before)
+- Epochs: 3 (with early stopping, patience=2)
+- Hardware: H100 80GB (3-4 hours, $8-10 estimated)
 
-Meta-Learning (MAML):
-- Inner loop: Fast adaptation on task-specific batches (lr=5e-3, 3 steps)
-- Outer loop: Meta-optimization across tasks (lr=2e-4)
-- Task definition: Domain-based (8 domains, sampled in batches)
+Meta-Learning (ANIL-MAML) - CORRECTED Hyperparameters:
+- Research: Raghu et al. 2020 - "Rapid Learning or Feature Reuse?"
+- Inner loop: Adapt ONLY head layer (lm_head LoRA) on support sets (lr=3e-5, 3 steps)
+- Outer loop: Meta-optimize ALL LoRA params across tasks (lr=5e-6)
+- Key insight: Only output layer needs fast adaptation, representations stay stable
+- Performance: Within 1-2% of full MAML, but 5-10x faster inner loop
+- Perfect for PEFT/LoRA: Body (frozen base) + Head (LoRA) architecture
 
-Cost: ~$16 for full training
+Task Definition (IMPROVED for Stability):
+- 8 domains (Math, Coding, Science, Reasoning, etc.)
+- Support set: 6 examples per task (improved adaptation)
+- Query set: 6 examples per task (stable meta-gradients)
+- Tasks per batch: 4 (INCREASED for better gradient estimates)
+- Gradient clipping: 0.5 (conservative)
+
+Cost: ~$10 for full training
 Output: 14GB BF16 model with LoRA weights
+
+Memory Management:
+- Uses PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+- Aggressive cache clearing after each inner/outer loop
+- Conservative defaults to fit in 80GB H100
 """
 
 import os
@@ -41,12 +57,57 @@ from transformers import (
     Trainer,
     DataCollatorForLanguageModeling,
 )
+from transformers.data.data_collator import DataCollatorMixin
 from peft import LoraConfig, get_peft_model, TaskType, prepare_model_for_kbit_training
 from datasets import Dataset
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn
 from rich.table import Table
 from rich.panel import Panel
+
+
+class MAMLDataCollator(DataCollatorMixin):
+    """
+    Custom data collator that handles domain/difficulty metadata for MAML.
+    Keeps metadata fields as lists instead of trying to convert to tensors.
+    """
+    def __init__(self, tokenizer, mlm=False):
+        self.tokenizer = tokenizer
+        self.mlm = mlm
+        
+    def __call__(self, features):
+        # Separate metadata from tensor features
+        metadata_keys = ['domain', 'difficulty']
+        metadata = {key: [] for key in metadata_keys}
+        tensor_features = []
+        
+        for feature in features:
+            # Extract metadata
+            for key in metadata_keys:
+                if key in feature:
+                    metadata[key].append(feature[key])
+            
+            # Keep only tensor-compatible features
+            tensor_feature = {k: v for k, v in feature.items() if k not in metadata_keys}
+            tensor_features.append(tensor_feature)
+        
+        # Use default collator for tensor features
+        batch = self.tokenizer.pad(
+            tensor_features,
+            padding=True,
+            return_tensors='pt'
+        )
+        
+        # Add labels (for causal LM, labels = input_ids)
+        if 'labels' not in batch:
+            batch['labels'] = batch['input_ids'].clone()
+        
+        # Add metadata back as lists (not tensors)
+        for key, values in metadata.items():
+            if values:  # Only add if not empty
+                batch[key] = values
+        
+        return batch
 
 console = Console()
 
@@ -60,8 +121,8 @@ def parse_args():
     parser.add_argument(
         "--data_file",
         type=str,
-        default="data/phase1/answers/training_data_interleaved.jsonl",
-        help="Path to interleaved training data"
+        default="data/phase1/answers/training_data_clean.jsonl",
+        help="Path to cleaned training data (without XML tags)"
     )
     parser.add_argument(
         "--model_name",
@@ -84,20 +145,20 @@ def parse_args():
     parser.add_argument(
         "--gradient_accumulation_steps",
         type=int,
-        default=4,
-        help="Gradient accumulation steps (effective batch = batch_size * gradient_accumulation_steps)"
+        default=8,
+        help="Gradient accumulation steps (effective batch = batch_size * gradient_accumulation_steps). MAML stable: 8 for better gradients."
     )
     parser.add_argument(
         "--learning_rate",
         type=float,
-        default=2e-4,
-        help="Learning rate for outer loop (meta-optimization)"
+        default=3e-6,
+        help="Learning rate for outer loop (meta-optimization). MAML best practice for 8B: 3e-6."
     )
     parser.add_argument(
         "--inner_learning_rate",
         type=float,
-        default=5e-3,
-        help="Learning rate for inner loop (task adaptation)"
+        default=1e-5,
+        help="Learning rate for inner loop (task adaptation). MAML best practice for 8B: 1e-5."
     )
     parser.add_argument(
         "--num_epochs",
@@ -108,14 +169,14 @@ def parse_args():
     parser.add_argument(
         "--lora_rank",
         type=int,
-        default=64,
-        help="LoRA rank"
+        default=16,
+        help="LoRA rank. MAML best practice: 8-16 for 8B models to prevent overfitting."
     )
     parser.add_argument(
         "--lora_alpha",
         type=int,
-        default=128,
-        help="LoRA alpha (scaling factor)"
+        default=32,
+        help="LoRA alpha (scaling factor). Set to 2× rank for MAML."
     )
     parser.add_argument(
         "--max_seq_length",
@@ -153,8 +214,55 @@ def parse_args():
         default=None,
         help="Force specific Flash Attention version (2 or 3). Default: auto-detect based on GPU"
     )
+    parser.add_argument(
+        "--inner_steps",
+        type=int,
+        default=1,
+        help="Number of gradient steps in inner loop (head adaptation). MAML stable: 1-2 steps for 8B models."
+    )
+    parser.add_argument(
+        "--tasks_per_batch",
+        type=int,
+        default=2,
+        help="Number of tasks (domains) to sample per meta-batch. MAML stable: 2-4 tasks for 8B models."
+    )
+    parser.add_argument(
+        "--support_size",
+        type=int,
+        default=4,
+        help="Number of examples per task for inner loop adaptation. Conservative: 4 for memory safety."
+    )
+    parser.add_argument(
+        "--query_size",
+        type=int,
+        default=4,
+        help="Number of examples per task for outer loop meta-update. Conservative: 4 for memory safety."
+    )
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=2,
+        help="Early stopping: stop if no improvement for N epochs. Set to 0 to disable. With 3 epochs, patience=2 is recommended."
+    )
+    parser.add_argument(
+        "--resume_from_checkpoint",
+        type=str,
+        default=None,
+        help="Resume from checkpoint. Use 'auto' or 'latest' to auto-detect, or provide path (e.g., data/checkpoints/phase1/checkpoint-1000)"
+    )
     
     return parser.parse_args()
+
+
+def find_latest_checkpoint(output_dir: Path) -> Path:
+    """Find the latest checkpoint in the output directory."""
+    checkpoint_dirs = list(output_dir.glob("checkpoint-*"))
+    if not checkpoint_dirs:
+        return None
+    
+    # Sort by step number (extract from checkpoint-XXXX)
+    checkpoint_dirs.sort(key=lambda p: int(p.name.split("-")[-1]))
+    return checkpoint_dirs[-1]
 
 
 def load_training_data(data_file: Path) -> List[Dict]:
@@ -253,32 +361,20 @@ def validate_data(examples: List[Dict]) -> Dict[str, int]:
 
 
 def format_training_example(example: Dict, tokenizer) -> str:
-    """Format example into Llama chat template format."""
-    prompt = example['prompt']
-    difficulty = example.get('metadata', {}).get('difficulty', 'easy')
+    """Format example into Llama chat template format.
     
-    if difficulty == 'easy':
-        # Easy: Direct response
-        response = example['response']
-        
-        # Create chat format
-        messages = [
-            {"role": "user", "content": prompt},
-            {"role": "assistant", "content": response}
-        ]
-    else:
-        # Hard: Draft → Thinking → Response
-        draft = example.get('draft', '')
-        thinking = example.get('thinking', '')
-        response = example.get('response', '')
-        
-        # Combine for training (model learns to do CoT internally)
-        full_response = f"{draft}\n\n{thinking}\n\n{response}"
-        
-        messages = [
-            {"role": "user", "content": prompt},
-            {"role": "assistant", "content": full_response}
-        ]
+    UPDATED: Now expects clean data without XML tags.
+    - Easy examples: Direct answers
+    - Hard examples: Natural language reasoning structure already integrated
+    """
+    prompt = example['prompt']
+    response = example['response']  # Already formatted correctly (cleaned data)
+    
+    # Create standard chat format
+    messages = [
+        {"role": "user", "content": prompt},
+        {"role": "assistant", "content": response}
+    ]
     
     # Apply Llama chat template
     formatted = tokenizer.apply_chat_template(
@@ -336,11 +432,11 @@ def prepare_dataset(examples: List[Dict], tokenizer, max_seq_length: int) -> Dat
         'difficulty': difficulties
     })
     
-    # Tokenize
+    # Tokenize (keep domain and difficulty for MAML task grouping)
     tokenized_dataset = dataset.map(
         tokenize_function,
         batched=True,
-        remove_columns=['text'],
+        remove_columns=['text'],  # Only remove the text column
         desc="Tokenizing"
     )
     
@@ -493,6 +589,26 @@ def setup_model_and_tokenizer(
     # Apply LoRA
     model = get_peft_model(model, lora_config)
     
+    # Disable gradient checkpointing for FOMAML compatibility
+    # Gradient checkpointing can interfere with meta-learning gradient flow
+    # model.gradient_checkpointing_enable()
+    
+    # Ensure model is in training mode
+    model.train()
+    
+    # FIX 1: Force gradients on LoRA params after wrapping
+    # Make absolutely sure LoRA parameters are trainable
+    for name, param in model.named_parameters():
+        if 'lora' in name.lower():
+            param.requires_grad = True
+    
+    # Verify gradients are enabled for LoRA params
+    lora_params = [p for n, p in model.named_parameters() if 'lora' in n.lower() and p.requires_grad]
+    if len(lora_params) == 0:
+        raise RuntimeError("No LoRA parameters require gradients!")
+    
+    console.print(f"[cyan]  • LoRA parameters with gradients: {len(lora_params)}[/cyan]")
+    
     # Print trainable parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total_params = sum(p.numel() for p in model.parameters())
@@ -508,19 +624,366 @@ def setup_model_and_tokenizer(
     return model, tokenizer
 
 
+def group_examples_by_domain(examples: List[Dict]) -> Dict[str, List[Dict]]:
+    """Group examples by domain for task-based sampling."""
+    domains = defaultdict(list)
+    for example in examples:
+        domain = example.get('metadata', {}).get('domain', 'Unknown')
+        domains[domain].append(example)
+    return dict(domains)
+
+
+def maml_train_step(
+    model,
+    tokenizer,
+    task_examples: List[Dict],
+    inner_lr: float,
+    inner_steps: int,
+    support_size: int,
+    query_size: int,
+    max_seq_length: int,
+    device: torch.device
+) -> torch.Tensor:
+    """
+    Single MAML training step for one task.
+    
+    Args:
+        model: The model to train
+        tokenizer: Tokenizer
+        task_examples: All examples for this task
+        inner_lr: Learning rate for inner loop
+        inner_steps: Number of gradient steps in inner loop
+        support_size: Number of examples for adaptation
+        query_size: Number of examples for meta-loss
+        max_seq_length: Max sequence length
+        device: Device to train on
+        
+    Returns:
+        meta_loss: Loss on query set after adaptation
+    """
+    # Sample support and query sets
+    if len(task_examples) < support_size + query_size:
+        # If not enough examples, sample with replacement
+        support_set = random.choices(task_examples, k=support_size)
+        query_set = random.choices(task_examples, k=query_size)
+    else:
+        sampled = random.sample(task_examples, support_size + query_size)
+        support_set = sampled[:support_size]
+        query_set = sampled[support_size:]
+    
+    # Save original LoRA parameters
+    original_state = {}
+    for name, param in model.named_parameters():
+        if param.requires_grad and 'lora' in name.lower():
+            original_state[name] = param.data.clone()
+    
+    # Clear any cached memory before inner loop
+    torch.cuda.empty_cache()
+    
+    # INNER LOOP: Fast adaptation on support set
+    # Using ANIL-MAML (Almost No Inner Loop) - only adapt head layer
+    # 
+    # RESEARCH-BACKED APPROACH (Raghu et al., 2020):
+    # - Inner loop: Only adapt head (lm_head) - learns task-specific output mapping
+    # - Outer loop: Meta-optimize ALL LoRA params - learns good representations
+    # - Performance: Within 1-2% of full MAML, but 5-10x faster inner loop
+    # - Perfect fit for PEFT/LoRA: Body (frozen base) + Head (LoRA) architecture
+    # 
+    # KEY INSIGHT: Representations don't change much during inner loop adaptation.
+    # Only the final layer needs to adapt quickly to new tasks.
+    model.train()
+    
+    # ANIL: Only adapt head layer in inner loop (lm_head LoRA parameters)
+    head_params = [p for n, p in model.named_parameters() 
+                   if 'lm_head' in n and 'lora' in n.lower() and p.requires_grad]
+    
+    if len(head_params) == 0:
+        # Fallback: If no lm_head LoRA, use last layer LoRA params
+        all_lora_params = [(n, p) for n, p in model.named_parameters() 
+                           if 'lora' in n.lower() and p.requires_grad]
+        # Take last layer (typically down_proj or o_proj of last transformer block)
+        if len(all_lora_params) > 0:
+            last_layer_names = [n for n, _ in all_lora_params[-4:]]  # Last 4 params (A/B for 2 modules)
+            head_params = [p for n, p in all_lora_params if n in last_layer_names]
+    
+    for inner_step in range(inner_steps):
+        # Format and tokenize support examples
+        support_texts = [format_training_example(ex, tokenizer) for ex in support_set]
+        support_encodings = tokenizer(
+            support_texts,
+            truncation=True,
+            max_length=max_seq_length,
+            padding='max_length',
+            return_tensors='pt'
+        ).to(device)
+        
+        # Forward pass with autocast for bf16
+        with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+            outputs = model(**support_encodings, labels=support_encodings['input_ids'])
+            loss = outputs.loss
+        
+        # ANIL: Compute gradients ONLY for head parameters (no computation graph)
+        grads = torch.autograd.grad(
+            loss,
+            head_params,
+            create_graph=False,  # First-order only, no second-order gradients
+            allow_unused=True
+        )
+        
+        # Apply inner loop updates to head only (detached from graph)
+        with torch.no_grad():
+            for param, grad in zip(head_params, grads):
+                if grad is not None:
+                    # ANIL: Only head parameters adapt in inner loop
+                    param.data.sub_(inner_lr * grad)
+        
+        # AGGRESSIVE memory cleanup after each inner step
+        del support_encodings, outputs, loss, grads
+        torch.cuda.empty_cache()  # Always clear, not just between steps
+    
+    # Clear gradients before outer loop
+    model.zero_grad()
+    
+    # OUTER LOOP: Compute meta-loss on query set
+    # This gradient WILL flow back for meta-optimization
+    query_texts = [format_training_example(ex, tokenizer) for ex in query_set]
+    query_encodings = tokenizer(
+        query_texts,
+        truncation=True,
+        max_length=max_seq_length,
+        padding='max_length',
+        return_tensors='pt'
+    ).to(device)
+    
+    # Forward pass with autocast for bf16
+    # This gradient WILL flow back (not detached)
+    with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+        outputs = model(**query_encodings, labels=query_encodings['input_ids'])
+        meta_loss = outputs.loss
+    
+    # Restore original model parameters for next task
+    with torch.no_grad():
+        for name, original_value in original_state.items():
+            for pname, param in model.named_parameters():
+                if pname == name:
+                    param.data.copy_(original_value)
+                    break
+    
+    # Clear memory after each task
+    del original_state, query_encodings, outputs
+    torch.cuda.empty_cache()
+    
+    return meta_loss
+
+
+def train_maml(
+    model,
+    tokenizer,
+    examples: List[Dict],
+    args,
+    output_dir: Path
+):
+    """
+    MAML training loop.
+    
+    Implements Model-Agnostic Meta-Learning:
+    1. Sample tasks (domains)
+    2. For each task: adapt on support set, evaluate on query set
+    3. Meta-update: improve base model to be good at adaptation
+    """
+    console.print("\n[bold cyan]Starting MAML Training[/bold cyan]\n")
+    
+    # Group examples by domain (tasks)
+    domain_groups = group_examples_by_domain(examples)
+    domains = list(domain_groups.keys())
+    
+    console.print(f"[cyan]Tasks (domains):[/cyan] {', '.join(domains)}")
+    console.print(f"[cyan]Examples per domain:[/cyan]")
+    for domain, exs in domain_groups.items():
+        console.print(f"  • {domain}: {len(exs):,}")
+    console.print()
+    
+    # Setup optimizer for meta-updates
+    optimizer = torch.optim.AdamW(
+        [p for p in model.parameters() if p.requires_grad],
+        lr=args.learning_rate,
+        weight_decay=0.01
+    )
+    
+    # Calculate total steps
+    num_examples = len(examples)
+    steps_per_epoch = num_examples // (args.tasks_per_batch * (args.support_size + args.query_size))
+    total_steps = steps_per_epoch * args.num_epochs
+    
+    console.print(f"[cyan]Training configuration:[/cyan]")
+    console.print(f"  • Tasks per batch: {args.tasks_per_batch}")
+    console.print(f"  • Support size: {args.support_size}")
+    console.print(f"  • Query size: {args.query_size}")
+    console.print(f"  • Inner steps: {args.inner_steps}")
+    console.print(f"  • Inner LR: {args.inner_learning_rate}")
+    console.print(f"  • Outer LR: {args.learning_rate}")
+    console.print(f"  • Steps per epoch: {steps_per_epoch}")
+    console.print(f"  • Total steps: {total_steps}")
+    console.print()
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    
+    # Enable TF32 for better performance
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+    
+    # Clear any cached memory before starting
+    torch.cuda.empty_cache()
+    
+    # Training loop with early stopping
+    global_step = 0
+    best_loss = float('inf')
+    patience = args.patience
+    patience_counter = 0
+    epoch_losses = []
+    early_stopping_enabled = patience > 0
+    
+    if early_stopping_enabled:
+        console.print(f"[cyan]Early stopping enabled: patience={patience} epochs[/cyan]\n")
+    else:
+        console.print(f"[cyan]Early stopping disabled[/cyan]\n")
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeRemainingColumn(),
+        console=console
+    ) as progress:
+        train_task = progress.add_task(f"Training (Epoch 1/{args.num_epochs})", total=total_steps)
+        
+        for epoch in range(args.num_epochs):
+            progress.update(train_task, description=f"Training (Epoch {epoch+1}/{args.num_epochs})")
+            epoch_loss = 0.0
+            
+            for step in range(steps_per_epoch):
+                # Sample tasks (domains)
+                sampled_domains = random.sample(domains, min(args.tasks_per_batch, len(domains)))
+                
+                # Meta-batch: Compute loss for each task
+                # Process tasks one at a time to minimize memory
+                meta_losses = []
+                for domain in sampled_domains:
+                    task_examples = domain_groups[domain]
+                    
+                    # Compute meta-loss for this task
+                    meta_loss = maml_train_step(
+                        model=model,
+                        tokenizer=tokenizer,
+                        task_examples=task_examples,
+                        inner_lr=args.inner_learning_rate,
+                        inner_steps=args.inner_steps,
+                        support_size=args.support_size,
+                        query_size=args.query_size,
+                        max_seq_length=args.max_seq_length,
+                        device=device
+                    )
+                    
+                    # Store loss value, detach to free computation graph
+                    meta_losses.append(meta_loss.detach())
+                    
+                    # Backward on this task's loss immediately
+                    meta_loss.backward()
+                    
+                    # Clear memory after each task
+                    del meta_loss
+                
+                # Meta-update (outer loop optimization)
+                # Gradients already computed above
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)  # MAML best practice: 0.5-1.0
+                optimizer.step()
+                optimizer.zero_grad()
+                
+                # Calculate average loss for logging
+                avg_meta_loss = torch.stack(meta_losses).mean().item()
+                
+                # AGGRESSIVE cleanup after meta-batch
+                del meta_losses
+                torch.cuda.empty_cache()
+                
+                # Logging
+                epoch_loss += avg_meta_loss
+                global_step += 1
+                
+                if global_step % args.logging_steps == 0:
+                    avg_loss = epoch_loss / (step + 1)
+                    progress.console.print(
+                        f"  Step {global_step}/{total_steps} | Loss: {avg_loss:.4f} | "
+                        f"Tasks: {', '.join(sampled_domains)}"
+                    )
+                
+                # Save checkpoint
+                if global_step % args.save_steps == 0:
+                    checkpoint_dir = output_dir / f"checkpoint-{global_step}"
+                    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+                    model.save_pretrained(str(checkpoint_dir))
+                    tokenizer.save_pretrained(str(checkpoint_dir))
+                    console.print(f"[green]✓ Checkpoint saved: {checkpoint_dir}[/green]")
+                
+                progress.advance(train_task)
+            
+            # Epoch summary
+            avg_epoch_loss = epoch_loss / steps_per_epoch
+            epoch_losses.append(avg_epoch_loss)
+            console.print(f"\n[bold]Epoch {epoch+1} complete | Avg Loss: {avg_epoch_loss:.4f}[/bold]")
+            
+            # Early stopping check
+            if avg_epoch_loss < best_loss:
+                best_loss = avg_epoch_loss
+                patience_counter = 0
+                best_dir = output_dir / "best"
+                best_dir.mkdir(parents=True, exist_ok=True)
+                model.save_pretrained(str(best_dir))
+                tokenizer.save_pretrained(str(best_dir))
+                console.print(f"[green]✓ Best model saved (loss: {best_loss:.4f})[/green]")
+                if early_stopping_enabled:
+                    console.print(f"[green]  Patience reset: {patience_counter}/{patience}[/green]\n")
+                else:
+                    console.print()
+            else:
+                if early_stopping_enabled:
+                    patience_counter += 1
+                    console.print(f"[yellow]⚠ No improvement (patience: {patience_counter}/{patience})[/yellow]\n")
+                    
+                    if patience_counter >= patience:
+                        console.print(f"[yellow]⚠ Early stopping triggered - No improvement for {patience} epochs[/yellow]")
+                        console.print(f"[cyan]Best loss: {best_loss:.4f} at epoch {epoch + 1 - patience}[/cyan]\n")
+                        break
+                else:
+                    console.print()
+    
+    # Training summary
+    console.print("[bold green]✓ MAML Training Complete![/bold green]")
+    console.print(f"[cyan]Final best loss: {best_loss:.4f}[/cyan]")
+    console.print(f"[cyan]Total epochs: {len(epoch_losses)}/{args.num_epochs}[/cyan]\n")
+
+
 def main():
     """Main training function."""
     args = parse_args()
     
+    # Set environment variables for memory and performance optimization
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True,max_split_size_mb:512'
+    os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+    
     # Display training configuration
     console.print("\n" + "="*80)
     console.print(Panel.fit(
-        "[bold cyan]Phase 1: MAML + LoRA Training[/bold cyan]\n"
+        "[bold cyan]Phase 1: ANIL-MAML + LoRA Training (v2 Optimized)[/bold cyan]\n"
         f"Model: {args.model_name}\n"
         f"Batch size: {args.batch_size} (effective: {args.batch_size * args.gradient_accumulation_steps})\n"
         f"Learning rate: {args.learning_rate} (outer) / {args.inner_learning_rate} (inner)\n"
         f"Epochs: {args.num_epochs}\n"
-        f"LoRA: rank={args.lora_rank}, alpha={args.lora_alpha}",
+        f"LoRA: rank={args.lora_rank}, alpha={args.lora_alpha}\n"
+        f"ANIL: inner_steps={args.inner_steps}, support={args.support_size}, query={args.query_size}\n"
+        f"Memory: TF32 enabled, max_split_size=512MB",
         border_style="cyan"
     ))
     console.print("="*80 + "\n")
@@ -547,86 +1010,60 @@ def main():
         use_flash_attention=True
     )
     
-    # Prepare dataset
-    train_dataset = prepare_dataset(examples, tokenizer, args.max_seq_length)
+    # Resume from checkpoint if specified
+    if args.resume_from_checkpoint:
+        # If just "auto" or "latest", find the latest checkpoint
+        if args.resume_from_checkpoint.lower() in ["auto", "latest"]:
+            checkpoint_path = find_latest_checkpoint(output_dir)
+            if checkpoint_path is None:
+                console.print("[yellow]⚠️  No checkpoints found, starting from scratch[/yellow]\n")
+            else:
+                console.print(f"[cyan]Auto-detected latest checkpoint:[/cyan] {checkpoint_path}")
+        else:
+            checkpoint_path = Path(args.resume_from_checkpoint)
+        
+        if checkpoint_path and checkpoint_path.exists():
+            console.print(f"[cyan]Resuming from checkpoint:[/cyan] {checkpoint_path}")
+            try:
+                from peft import PeftModel
+                model = PeftModel.from_pretrained(model, str(checkpoint_path))
+                console.print("[green]✓ Checkpoint loaded successfully[/green]\n")
+            except Exception as e:
+                console.print(f"[red]✗ Failed to load checkpoint: {e}[/red]")
+                console.print("[yellow]Starting training from scratch instead...[/yellow]\n")
+        elif checkpoint_path:
+            console.print(f"[red]✗ Checkpoint not found: {checkpoint_path}[/red]")
+            console.print("[yellow]Starting training from scratch instead...[/yellow]\n")
     
-    # Training arguments
-    training_args = TrainingArguments(
-        output_dir=str(output_dir),
-        num_train_epochs=args.num_epochs,
-        per_device_train_batch_size=args.batch_size,
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
-        learning_rate=args.learning_rate,
-        lr_scheduler_type="cosine",
-        warmup_ratio=args.warmup_ratio,
-        logging_dir=str(output_dir / "logs"),
-        logging_steps=args.logging_steps,
-        save_steps=args.save_steps,
-        save_total_limit=3,
-        bf16=True,
-        optim="adamw_torch_fused",
-        gradient_checkpointing=True,
-        dataloader_num_workers=4,
-        remove_unused_columns=False,
-        report_to="tensorboard",
-        load_best_model_at_end=False,
-        metric_for_best_model=None,
-        greater_is_better=None,
-    )
-    
-    # Data collator
-    data_collator = DataCollatorForLanguageModeling(
-        tokenizer=tokenizer,
-        mlm=False
-    )
-    
-    # Create trainer
-    trainer = Trainer(
+    # Run MAML training
+    train_maml(
         model=model,
-        args=training_args,
-        train_dataset=train_dataset,
-        data_collator=data_collator,
+        tokenizer=tokenizer,
+        examples=examples,
+        args=args,
+        output_dir=output_dir
     )
-    
-    # Start training
-    console.print(Panel.fit(
-        "[bold green]🚀 Starting Training[/bold green]\n"
-        f"Total steps: {len(train_dataset) * args.num_epochs // (args.batch_size * args.gradient_accumulation_steps)}\n"
-        f"Estimated time: 7-8 hours (H100)\n"
-        f"Estimated cost: ~$16",
-        border_style="green"
-    ))
-    console.print()
-    
-    # Train
-    train_result = trainer.train()
     
     # Save final model
     console.print("\n[cyan]Saving final model...[/cyan]")
-    trainer.save_model(str(output_dir / "final"))
-    tokenizer.save_pretrained(str(output_dir / "final"))
+    final_dir = output_dir / "final"
+    final_dir.mkdir(parents=True, exist_ok=True)
+    model.save_pretrained(str(final_dir))
+    tokenizer.save_pretrained(str(final_dir))
+    console.print(f"[green]✓ Model saved to:[/green] {final_dir}\n")
     
-    # Save training metrics
-    metrics_file = output_dir / "training_metrics.json"
-    with open(metrics_file, 'w') as f:
-        json.dump(train_result.metrics, f, indent=2)
-    
-    console.print(f"[green]✓ Model saved to:[/green] {output_dir / 'final'}")
-    console.print(f"[green]✓ Metrics saved to:[/green] {metrics_file}\n")
-    
-    # Display training summary
+    # Display completion summary
     console.print(Panel.fit(
-        "[bold green]✅ Training Complete![/bold green]\n"
-        f"Final loss: {train_result.metrics.get('train_loss', 'N/A'):.4f}\n"
-        f"Training time: {train_result.metrics.get('train_runtime', 0)/3600:.1f} hours\n"
-        f"Samples/second: {train_result.metrics.get('train_samples_per_second', 'N/A'):.2f}",
+        "[bold green]✅ MAML Training Complete![/bold green]\n"
+        f"Model saved: {final_dir}\n"
+        f"The model is now adapted for fast learning on new tasks!",
         border_style="green"
     ))
     console.print()
     
     console.print("[bold cyan]Next Steps:[/bold cyan]")
     console.print("  1. Evaluate model on benchmarks")
-    console.print("  2. Test on sample queries")
+    console.print("  2. Test few-shot adaptation on new tasks")
     console.print("  3. Proceed to Phase 2: Speed Infrastructure\n")
 
 

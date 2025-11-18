@@ -12,8 +12,14 @@ Tests:
 Run this BEFORE starting the full training to catch issues early.
 """
 
+import sys
 import torch
 from pathlib import Path
+
+# Add project root to path
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
 from scripts.phase1_train_maml_lora import (
     load_training_data,
     validate_data,
@@ -26,14 +32,12 @@ from rich.panel import Panel
 
 console = Console()
 
-PROJECT_ROOT = Path(__file__).parent.parent
-
 
 def test_data_loading():
     """Test data loading and validation."""
     console.print("\n[bold cyan]TEST 1: Data Loading & Validation[/bold cyan]\n")
     
-    data_file = PROJECT_ROOT / "data/phase1/answers/training_data_interleaved.jsonl"
+    data_file = PROJECT_ROOT / "data/phase1/answers/training_data_clean.jsonl"
     
     try:
         examples = load_training_data(data_file)

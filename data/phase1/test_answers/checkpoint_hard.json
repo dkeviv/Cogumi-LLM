@@ -1,0 +1,29 @@
+{
+  "completed": [
+    4331356864,
+    4347043520,
+    4344652736,
+    4376827072,
+    4363042368,
+    4375718784,
+    4373816512,
+    4338900416,
+    4368564352,
+    4338413824
+  ],
+  "completed_questions": [
+    "Clarify the differences between various database management systems, including relational and NoSQL databases, using ∑ notation and ³ dimensional visualization.",
+    "If a person can type 60 words per minute, how many minutes will it take to type a 600-word document?",
+    "A car travels from city A to city B at 55 mph, then from city B to city C at 75 mph. What is the average speed of the car for the entire trip if the distance from A to B is 200 miles and from B to C is 280 miles?",
+    "Design a finite state machine to recognize the regular expression (a|b)*abb, and explain its states and transitions.",
+    "Write a SQL query that recursively traverses a graph stored in a table with (node_id, parent_id) pairs to find all circular references, returning each complete cycle as a JSON array.",
+    "Using `vim`, write a macro to refactor a large codebase by renaming variables, formatting code, and removing unused imports across multiple files.",
+    "Solve the Navier-Stokes equation for an incompressible fluid in 3D with initial condition u(x,0) = sin(x).",
+    "Find all real solutions to the equation x^8 - 8x^6 + 20x^4 - 16x^2 + 2 = 0.",
+    "If a bike travels 25 miles in 2 hours, how many miles will it travel in 5 hours at the same speed?",
+    "Implement a Huffman coding encoder and decoder with adaptive frequency updates."
+  ],
+  "failed": [],
+  "count": 10,
+  "timestamp": "2025-11-14T18:51:34.957424"
+}
