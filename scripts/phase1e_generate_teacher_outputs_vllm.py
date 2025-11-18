@@ -69,8 +69,9 @@ def generate_with_vllm(
     
     console.print(f"\n[bold blue]Initializing vLLM engine...[/bold blue]")
     console.print(f"Model: {model_path}")
-    console.print(f"Max tokens: {max_tokens}")
-    console.print(f"Generation mode: Greedy decoding (temperature=0.0)")
+    console.print(f"Max tokens: 512 (capped to prevent verbose output)")
+    console.print(f"Generation mode: Low temperature sampling (temp=0.3, repetition_penalty=1.2)")
+    console.print(f"[yellow]Multiple stopping mechanisms enabled to prevent repetitive output[/yellow]")
     console.print(f"[yellow]vLLM will automatically optimize batch processing[/yellow]")
     
     # Initialize vLLM engine
@@ -86,11 +87,14 @@ def generate_with_vllm(
     
     console.print(f"[green]✓[/green] vLLM engine initialized\n")
     
-    # Sampling parameters (greedy decoding for speed)
+    # Sampling parameters with multiple stopping mechanisms
+    # FIX: Prevent verbose/repetitive generation (84% were hitting max_tokens)
     sampling_params = SamplingParams(
-        temperature=0.0,  # Greedy decoding (deterministic, faster)
-        max_tokens=max_tokens,
-        stop_token_ids=[llm.get_tokenizer().eos_token_id]
+        temperature=0.3,  # Low temperature (not fully greedy) to allow EOS generation
+        max_tokens=512,   # Reduced from 1024 to encourage concise answers
+        repetition_penalty=1.2,  # Penalize repetitive content
+        stop_token_ids=[llm.get_tokenizer().eos_token_id],  # Stop on EOS token
+        stop=["<|eot_id|>", "\n\n\n", "Question:", "Answer:", "If a car", "If "]  # Additional stop strings
     )
     
     # Create output directory
@@ -189,9 +193,10 @@ def generate_with_vllm(
                                 'example_id': example_idx,
                                 'teacher_model': 'llama-3.1-8b-maml-merged',
                                 'generation_params': {
-                                    'temperature': 0.0,  # Greedy decoding
-                                    'do_sample': False,
-                                    'max_tokens': max_tokens
+                                    'temperature': 0.3,  # Low temperature sampling
+                                    'do_sample': True,
+                                    'repetition_penalty': 1.2,
+                                    'max_tokens': 512  # Capped at 512
                                 },
                                 'num_tokens_generated': num_tokens,
                                 'generation_time': batch_time / len(batch_examples)

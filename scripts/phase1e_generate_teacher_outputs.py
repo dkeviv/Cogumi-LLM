@@ -130,12 +130,15 @@ def generate_teacher_output(
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=2048)
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
     
-    # Generate (greedy decoding for speed)
+    # Generate with multiple stopping mechanisms
+    # FIX: Prevent verbose/repetitive generation
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=False,  # Greedy decoding (faster)
+            max_new_tokens=min(max_new_tokens, 512),  # Cap at 512 even if higher requested
+            do_sample=True,  # Use sampling (not greedy) to allow EOS generation
+            temperature=0.3,  # Low temperature for mostly deterministic but allows stopping
+            repetition_penalty=1.2,  # Penalize repetitive content
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id
         )
@@ -180,12 +183,15 @@ def generate_batch_outputs(
     )
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
     
-    # Generate batch (greedy decoding for speed)
+    # Generate batch with multiple stopping mechanisms
+    # FIX: Prevent verbose/repetitive generation
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=False,  # Greedy decoding (faster than sampling)
+            max_new_tokens=min(max_new_tokens, 512),  # Cap at 512 even if higher requested
+            do_sample=True,  # Use sampling (not greedy) to allow EOS generation
+            temperature=0.3,  # Low temperature for mostly deterministic but allows stopping
+            repetition_penalty=1.2,  # Penalize repetitive content
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id
         )
@@ -225,10 +231,9 @@ def generate_all_outputs(
     console.print(f"\n[bold blue]Generating teacher outputs for {len(examples)} examples[/bold blue]")
     console.print(f"Output: {output_file}")
     console.print(f"Batch size: {batch_size} (H200 optimized)")
-    console.print(f"Max new tokens: {max_new_tokens}")
-    console.print(f"Generation mode: Greedy decoding (do_sample=False)")
-    console.print(f"[yellow]Expected speedup: ~12-15× (batched + greedy)[/yellow]")
-    
+    console.print(f"Max new tokens: {min(max_new_tokens, 512)} (capped to prevent verbose output)")
+    console.print(f"Generation mode: Low temperature sampling (temp=0.3, repetition_penalty=1.2)")
+    console.print(f"[yellow]Multiple stopping mechanisms enabled to prevent repetitive output[/yellow]")
     console.print(f"[yellow]Expected speedup: ~12-15× (batched generation)[/yellow]")
     
     # Create output directory
@@ -311,9 +316,10 @@ def generate_all_outputs(
                                 'example_id': example_idx,
                                 'teacher_model': 'llama-3.1-8b-maml-merged',
                                 'generation_params': {
-                                    'temperature': 0.0,  # Greedy decoding
-                                    'do_sample': False,
-                                    'max_new_tokens': max_new_tokens
+                                    'temperature': 0.3,  # Low temperature sampling
+                                    'do_sample': True,
+                                    'repetition_penalty': 1.2,
+                                    'max_new_tokens': min(max_new_tokens, 512)  # Capped at 512
                                 }
                             }
                         }
