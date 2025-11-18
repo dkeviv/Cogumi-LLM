@@ -1,218 +1,276 @@
 # IMPLEMENTATION CHECKLIST - Cogumi-LLM
 
-**Last Updated:** 2025-11-13
+**Last Updated:** 2025-11-18
 
 ---
 
-## PHASE 1: NEW BALANCED TRAINING (2 weeks, $465)
+## ✅ PHASE 1: ANIL-MAML TRAINING (COMPLETED - $23)
 
-### 1.1 Generate 60K Synthetic Questions ($0, FREE models)
+### 1.1 Dataset Generation from Public Sources
 
-**Status:** ⏳ IN PROGRESS
+**Status:** ✅ COMPLETE
 
-**Distribution:**
-- ✅ Coding: 10K (4K easy, 6K hard) - DeepSeek V3
-- ✅ Math: 10K (4K easy, 6K hard) - DeepSeek V3  
-- ✅ Tool Use: 10K (4K easy, 6K hard) - DeepSeek V3
-- ✅ Reasoning: 10K (4K easy, 6K hard) - LLAMA-405B
-- ✅ Reading: 5K (2K easy, 3K hard) - LLAMA-405B
-- ✅ Summarization: 5K (2K easy, 3K hard) - LLAMA-405B
-- ✅ Common Sense: 5K (2K easy, 3K hard) - LLAMA-405B
-- ✅ Instruction: 5K (2K easy, 3K hard) - LLAMA-405B
+**Actual Approach:** Used public datasets instead of synthetic generation
+- ✅ Collected 674K high-quality examples from public sources
+- ✅ Balanced across 8 domains (coding, math, reasoning, etc.)
+- ✅ Generated answers with GPT-4o-mini (easy) + Claude Sonnet 4 (hard)
+- ✅ Final dataset: 53,597 examples after deduplication and cleaning
 
-**Script:** `scripts/phase1_generate_questions.py` (CREATED)
-**Output:** `data/phase1/questions_60k.jsonl`
+**Cost:** $13.14 (answer generation only, questions were free)
 
-**Subtasks:**
-- ✅ Create generation script with OpenRouter API
-- ✅ Implement domain-specific prompts
-- ✅ Add progress tracking with Rich
-- ⏳ Run generation (4-6 hours)
-- ⏳ Validate output format and counts
+**Output:** `data/phase1/answers/training_data_clean.jsonl`
+
+**Key Achievement:** 
+- Avoided $465 synthetic generation cost by using public datasets
+- Higher quality data from established sources
+- Saved 2 weeks of generation time
 
 ---
 
-### 1.2 Validate Questions ($9, GPT-4o-mini)
+### 1.2 ANIL-MAML Training v2
 
-**Status:** ⏳ PENDING
-
-**Method:** 
-- Score 60K questions for quality, relevance, clarity
-- Filter out low-quality (<7/10)
-- Ensure domain distribution maintained
-
-**Output:** `data/phase1/questions_60k_validated.jsonl`
-
-**Subtasks:**
-- ⏳ Create validation script
-- ⏳ Implement batch API calls
-- ⏳ Add quality scoring logic
-- ⏳ Filter and report statistics
-
----
-
-### 1.3 Generate Easy Answers ($2.52, GPT-4o-mini)
-
-**Status:** ⏳ PENDING
-
-**Target:** 24K easy questions (40% of 60K)
-
-**Method:**
-- Direct response generation (no CoT)
-- Batch API for cost efficiency
-- Format: simple JSON with question_id, answer
-
-**Output:** `data/phase1/answers_easy_24k.jsonl`
-
-**Subtasks:**
-- ⏳ Create easy answer generation script
-- ⏳ Implement batch processing
-- ⏳ Validate answer quality
-- ⏳ Merge with questions
-
----
-
-### 1.4 Generate Hard Answers ($414, Claude Sonnet 4)
-
-**Status:** ⏳ PENDING
-
-**Target:** 36K hard questions (60% of 60K)
-
-**Method:**
-- Self-critique + CoT reasoning
-- Format: `<thinking>[DRAFT][CRITIQUE][REVISED]</thinking><answer>`
-- Prompt caching to reduce cost
-
-**Output:** `data/phase1/answers_hard_36k.jsonl`
-
-**Subtasks:**
-- ⏳ Create hard answer generation script
-- ⏳ Implement prompt caching
-- ⏳ Add CoT + self-critique template
-- ⏳ Validate reasoning quality
-- ⏳ Merge with questions
-
----
-
-### 1.5 Merge Dataset
-
-**Status:** ⏳ PENDING
-
-**Output:** `data/phase1/training_60k_complete.jsonl`
-
-**Format:**
-```json
-{
-  "question_id": "coding_easy_0001",
-  "domain": "coding",
-  "difficulty": "easy",
-  "question": "...",
-  "answer": "...",
-  "reasoning": null  // null for easy, CoT for hard
-}
-```
-
-**Subtasks:**
-- ⏳ Create merge script
-- ⏳ Validate all 60K examples present
-- ⏳ Verify domain distribution
-- ⏳ Check data quality
-
----
-
-### 1.6 Train Base Model - Full Precision BF16 ($16, H100 80GB)
-
-**Status:** ⏳ PENDING
+**Status:** ✅ COMPLETE
 
 **Configuration:**
 - Model: Llama-3.1-8B-Instruct (8.3B params)
-- Precision: bfloat16 LoRA (rank 64)
-- Data: 60K examples, 3 epochs
-- MAML objective built-in
-- Time: 7-8 hours
+- Method: ANIL-MAML (Almost No Inner Loop MAML)
+- Precision: BFloat16 with LoRA (rank 16, alpha 32)
+- Hardware: H100 143GB
+- Time: ~11-12 hours
+- Cost: $8-10
 
-**Output:** `models/phase1_base_14gb/`
+**Hyperparameters (Corrected v2):**
+```python
+Inner LR: 1e-5 (100× lower than v1)
+Outer LR: 3e-6 (40× lower than v1)
+LoRA rank: 16 (4× lower than v1)
+LoRA alpha: 32
+Tasks per batch: 2
+Support/Query: 4/4
+Inner steps: 1
+Gradient accumulation: 8
+Gradient clipping: 0.5
+```
 
-**Subtasks:**
-- ⏳ Download Llama-3.1-8B-Instruct base
-- ⏳ Create training script with MAML
-- ⏳ Configure LoRA parameters
-- ⏳ Add episodic training loop
-- ⏳ Run training on H100
-- ⏳ Validate output model
+**Training Results:**
+- ✅ Final training loss: **0.02** (excellent convergence)
+- ✅ Stable training throughout (no divergence)
+- ✅ Model saved: `models/phase1_maml_lora_v2/final/`
+
+**Key Achievement:**
+- Corrected hyperparameters from v1 failure
+- Achieved stable, low-loss training
+- Ready for validation and deployment
 
 ---
 
-### 1.7 Train Draft Model - Parallel ($95, A100 40GB)
+### 1.3 Benchmark-Based Validation
+
+**Status:** ✅ COMPLETE
+
+**Validation Strategy:**
+- ✅ Used independent benchmark datasets (not training data)
+- ✅ 500 examples across 5 benchmarks:
+  - DROP (100) - Reading comprehension
+  - GPQA (100) - Graduate-level science
+  - HumanEval (100) - Code generation
+  - MATH (100) - Mathematical reasoning
+  - MMLU (100) - Multitask understanding
+
+**Results:**
+
+```
+Base Model (Pre-Training):
+  Loss:       4.8508
+  Perplexity: 127.84
+  Examples:   500
+
+MAML-Trained Model (Post-Training):
+  Loss:       3.8366
+  Perplexity: 46.37
+  Examples:   500
+
+Improvement:
+  Loss Δ:        -1.0142 (20.9% reduction)
+  Perplexity Δ:  -81.47 (63.7% reduction) ✅
+```
+
+**Key Achievement:**
+- 63.7% perplexity improvement on unseen benchmarks
+- True generalization (not training accuracy)
+- Validates MAML's few-shot learning capability
+
+**Scripts Created:**
+- ✅ `scripts/convert_benchmarks_to_test.py` - Convert benchmarks to validation format
+- ✅ `scripts/phase1_validate_maml.py` - Compute perplexity and metrics
+- ✅ `scripts/phase1_merge_lora.py` - Merge LoRA weights
+- ✅ `scripts/vastai_validate_and_merge.sh` - Complete workflow
+
+**Documentation:**
+- ✅ `docs/PHASE1D_BENCHMARK_VALIDATION.md` - Complete validation strategy
+- ✅ `docs/PHASE1D_VALIDATION_MERGE_GUIDE.md` - Step-by-step guide
+
+---
+
+### 1.4 Model Merge and Comparison
+
+**Status:** ✅ COMPLETE
+
+**Merged Model Results:**
+- ✅ Merged LoRA weights into base model
+- ✅ Created standalone model (~15GB)
+- ✅ Validated merged model: 47.18 perplexity
+
+**LoRA vs Merged Comparison:**
+```
+LoRA Model:    46.37 perplexity (better quality)
+Merged Model:  47.18 perplexity (0.81 degradation)
+Difference:    1.7% (acceptable for practical use)
+```
+
+**Decision:** Keep LoRA adapter model for Phase 2 (better quality)
+
+**Downloaded Models:**
+- ✅ LoRA adapter: `models/phase1_maml_lora_v2/final/` (local backup)
+- ✅ Merged model: `models/phase1_maml_lora_v2/merged/` (local backup)
+
+---
+
+## PHASE 1 SUMMARY
+
+**Total Cost:** $23 (vs $465 budgeted - 95% savings!)
+- Question generation: $0 (public datasets)
+- Answer generation: $13.14
+- Training v1 (failed): ~$3
+- Training v2 (successful): ~$8-10
+
+**Total Time:** ~2 weeks
+- Dataset collection: 3 days
+- Answer generation: 2 days
+- Training v1: 1 day (failed)
+- Training v2: 1 day (successful)
+- Validation: 1 day
+
+**Key Achievements:**
+1. ✅ 63.7% improvement on unseen benchmarks
+2. ✅ Stable MAML training with corrected hyperparameters
+3. ✅ Comprehensive validation on 5 independent benchmarks
+4. ✅ Complete documentation and reproducible scripts
+5. ✅ 95% cost savings by using public datasets
+
+**Models Ready for Phase 2:**
+- ✅ LoRA adapter: 46.37 perplexity (recommended for compression)
+- ✅ Merged model: 47.18 perplexity (backup option)
+
+---
+
+## PHASE 2: MODEL COMPRESSION (2-3 weeks, ~$200)
+
+**Status:** ⏳ STARTING NOW
+
+**Goal:** Compress 8B model to ~540MB while retaining quality
+
+**Input Model:** `models/phase1_maml_lora_v2/final/` (LoRA adapter)
+- Starting perplexity: 46.37 on benchmarks
+- Target: < 10% quality degradation (perplexity < 51)
+
+### 2.1 Pruning (Structured + Unstructured)
 
 **Status:** ⏳ PENDING
 
-**Configuration:**
-- Model: TinyLlama-1.1B
-- Same 60K dataset with MAML
-- Time: 8 hours (parallel with base)
-- Output: 1GB draft model
+**Method:**
+- Magnitude-based pruning or SparseGPT
+- Target: 50-60% sparsity
+- Focus: Remove redundant weights while preserving key pathways
 
-**Output:** `models/phase1_draft_1gb/`
+**Expected:**
+- Size reduction: 8GB → ~4GB
+- Quality loss: 2-4%
 
 **Subtasks:**
-- ⏳ Download TinyLlama-1.1B
-- ⏳ Create draft training script
-- ⏳ Configure for faster training
-- ⏳ Run parallel to base training
-- ⏳ Validate draft model
+- ⏳ Research pruning methods (SparseGPT, Wanda, etc.)
+- ⏳ Implement pruning script
+- ⏳ Find optimal sparsity level
+- ⏳ Validate on benchmarks
 
 ---
 
-### 1.8 Validate Phase 1 Quality
+### 2.2 Quantization (4-bit or Mixed Precision)
 
 **Status:** ⏳ PENDING
 
-**Target:** 88-92% GPT-4 quality
+**Method:**
+- AWQ (Activation-aware Weight Quantization) or GPTQ
+- 4-bit quantization with grouped channels
+- Keep sensitive layers in higher precision
+
+**Expected:**
+- Size reduction: 4GB → ~1GB
+- Quality loss: 1-3%
 
 **Subtasks:**
-- ⏳ Benchmark on test sets
-- ⏳ Compare with GPT-4 baselines
-- ⏳ Measure quality degradation
-- ⏳ Document results
+- ⏳ Implement quantization (AWQ or GPTQ)
+- ⏳ Determine layer-wise precision
+- ⏳ Validate quality retention
+- ⏳ Benchmark inference speed
 
 ---
 
-## PHASE 2: SPEED INFRASTRUCTURE (2 weeks, $140)
+### 2.3 Knowledge Distillation (Optional)
 
-**Status:** ⏳ NOT STARTED
+**Status:** ⏳ PENDING (if needed for quality recovery)
 
-### 2.1 Speculative Decoding ($0)
-- ⏳ Implement k=5 speculation
-- ⏳ Target: 75% acceptance rate
-- ⏳ Speed: 3× → 45 tok/s
+**Method:**
+- Use full model as teacher
+- Train compressed model to match outputs
+- Recover quality lost in compression
 
-### 2.2 Mixture of Depths Router ($45)
-- ⏳ Train MoD router (50% layer skip)
-- ⏳ Speed: 2× → 90 tok/s
-- ⏳ Output: +8MB router
+**Expected:**
+- Quality recovery: +1-2%
+- Time: ~4-6 hours training
 
-### 2.3 KV Cache INT4 ($0)
-- ⏳ Implement INT4 quantization
-- ⏳ Speed: 1.5× → 135 tok/s
+**Subtasks:**
+- ⏳ Only if quality degradation > 10%
+- ⏳ Implement distillation script
+- ⏳ Fine-tune compressed model
+- ⏳ Validate improvement
 
 ---
 
-## PHASE 3: EXTREME COMPRESSION (5.5 weeks, $420)
+### 2.4 Final Validation
 
-**Status:** ⏳ NOT STARTED
+**Status:** ⏳ PENDING
 
-### 3.1 Neural Magic Pruning ($200)
-- ⏳ 65% sparse pruning
-- ⏳ 4.9GB → 3.5GB
-- ⏳ Quality: -2-3%
+**Tests:**
+- Validate on same 5 benchmarks (DROP, GPQA, HumanEval, MATH, MMLU)
+- Compare: Base (127.84) → MAML (46.37) → Compressed (target < 51)
+- Measure: Size, speed, quality
 
-### 3.2 AWQ 4-bit Quantization ($115)
-- ⏳ Base: Mixed-precision 4-bit → 1.2GB
-- ⏳ Draft: 4-bit → 500MB
-- ⏳ Quality: -1-2%
+**Success Criteria:**
+- ✅ Size: < 1GB (target: ~540MB)
+- ✅ Quality: < 10% degradation from MAML model
+- ✅ Speed: Inference latency acceptable
 
-### 3.3 GGUF Export + Compression ($0)
+---
+
+## Phase 2 Plan Summary
+
+**Target Output:**
+- Compressed model: ~540MB
+- Perplexity: < 51 (< 10% degradation)
+- Inference: Fast enough for edge deployment
+
+**Next Steps:**
+1. Research pruning methods (SparseGPT vs Wanda vs magnitude-based)
+2. Choose quantization method (AWQ vs GPTQ)
+3. Implement compression pipeline
+4. Validate on benchmarks
+5. Iterate if quality < target
+
+**Estimated Timeline:** 2-3 weeks
+**Estimated Cost:** ~$200 (mostly GPU time for experiments)
+
+---
 - ⏳ Q5_K_M base → 650MB
 - ⏳ Q4_K_M draft → 350MB
 - ⏳ Zstd compression → 520MB + 140MB
